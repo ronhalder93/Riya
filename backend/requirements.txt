@@ -3,3 +3,4 @@ uvicorn[standard]==0.34.2
 pydantic==2.11.4
 openai>=2.0.0,<3.0.0
 livekit-api>=1.0.0,<2.0.0
+livekit-agents>=1.0.0,<2.0.0
