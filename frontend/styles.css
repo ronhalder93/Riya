@@ -1,11 +1,11 @@
 *{box-sizing:border-box}
 :root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080b12;color:#f5f6fb}
-.app-shell{position:relative;width:100%;height:100svh;min-height:100svh;overflow:hidden;isolation:isolate}
-.scene{position:absolute;inset:0;z-index:0;background:radial-gradient(ellipse at 50% 42%,#273249 0%,#111827 48%,#080b12 100%);overflow:hidden}
+.app-shell{position:relative;width:100%;height:100dvh;min-height:100%;overflow:hidden;isolation:isolate}
+.scene{position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse at 50% 42%,#273249 0%,#111827 48%,#080b12 100%);overflow:hidden}
 .scene:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(4,7,13,.06),transparent 48%,rgba(4,7,13,.3));pointer-events:none}
 .scene canvas{display:block;width:100%;height:100%}
-.chat{position:absolute;z-index:2;left:0;right:0;bottom:0;padding:18px 16px calc(14px + env(safe-area-inset-bottom));pointer-events:none}
+.chat{position:fixed;z-index:2;left:0;right:0;bottom:0;padding:12px 12px calc(12px + env(safe-area-inset-bottom));pointer-events:none}
 .messages{display:flex;flex-direction:column;gap:9px;max-height:34svh;overflow:auto;padding:0 2px 12px;pointer-events:auto}
 .bubble{max-width:min(84%,520px);padding:11px 14px;border-radius:18px;font-size:14px;line-height:1.45;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 6px 24px #0002;overflow-wrap:anywhere}
 .assistant{align-self:flex-start;background:rgba(20,26,39,.72);border:1px solid #ffffff18;color:#f2f4fa}
@@ -14,7 +14,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080b12;col
 .composer input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:#fff;font:inherit;font-size:16px}
 .composer input::placeholder{color:#aab1c0}
 .tool-btn,.send-btn{flex:0 0 44px;width:44px;height:44px;border:0;border-radius:50%;display:grid;place-items:center}
-.tool-btn{background:transparent;color:#f4f6fb;font-size:25px}
+.tool-btn{appearance:none;-webkit-appearance:none;background:transparent;color:#f4f6fb;font-size:25px;line-height:1;padding:0;min-width:44px;min-height:44px}
 .send-btn{background:#7188f5;color:white;font-size:25px;font-weight:600}
 button{cursor:pointer}
 @media(min-width:700px){.chat{left:50%;right:auto;transform:translateX(-50%);width:min(680px,calc(100% - 48px));bottom:12px}}
