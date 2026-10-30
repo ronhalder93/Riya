@@ -144,3 +144,70 @@ addEventListener('resize', () => {
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('./sw.js').catch(()=>{});
 }
+
+// LiveKit call transport. A separate RIYA voice/video agent must join the same room
+// to provide AI speech and avatar video; text chat remains available without it.
+const callButton = document.querySelector('#callBtn');
+const liveStage = document.querySelector('#liveStage');
+let liveRoom = null;
+let livekitModule = null;
+
+async function startLiveCall() {
+  callButton.disabled = true;
+  setAvatarState('thinking');
+  try {
+    livekitModule ||= await import('https://esm.sh/livekit-client@2');
+    const tokenResponse = await fetch(`${API_BASE}/api/livekit/token`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({room_name: 'riya-main', participant_name: `guest-${Math.random().toString(36).slice(2, 8)}`})
+    });
+    if (!tokenResponse.ok) {
+      const error = await tokenResponse.json().catch(() => ({}));
+      throw new Error(error.detail || 'LiveKit is not configured on the server yet.');
+    }
+    const credentials = await tokenResponse.json();
+    liveRoom = new livekitModule.Room({adaptiveStream: true, dynacast: true});
+    liveRoom.on(livekitModule.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+      const element = track.attach();
+      element.dataset.participant = participant.identity;
+      if (track.kind === 'video') {
+        liveStage.replaceChildren(element);
+        liveStage.style.display = 'block';
+      } else {
+        element.autoplay = true;
+        liveStage.appendChild(element);
+      }
+    });
+    liveRoom.on(livekitModule.RoomEvent.TrackUnsubscribed, track => {
+      track.detach().forEach(element => element.remove());
+      if (!liveStage.querySelector('video')) liveStage.style.display = 'none';
+    });
+    liveRoom.on(livekitModule.RoomEvent.Disconnected, () => {
+      liveStage.replaceChildren();
+      liveStage.style.display = 'none';
+      callButton.textContent = '◉';
+      setAvatarState('idle');
+      liveRoom = null;
+    });
+    await liveRoom.connect(credentials.url, credentials.token);
+    await liveRoom.localParticipant.setMicrophoneEnabled(true);
+    callButton.textContent = '×';
+    setAvatarState('listening');
+    addMessage('Live call connected. Waiting for RIYA’s voice/video agent to join…', 'assistant');
+  } catch (error) {
+    addMessage(error.message || 'Could not connect the live call. Text chat is still available.', 'assistant');
+    setAvatarState('idle');
+    if (liveRoom) { await liveRoom.disconnect().catch(() => {}); liveRoom = null; }
+  } finally {
+    callButton.disabled = false;
+  }
+}
+
+callButton?.addEventListener('click', async () => {
+  if (liveRoom) {
+    await liveRoom.disconnect();
+    return;
+  }
+  await startLiveCall();
+});
