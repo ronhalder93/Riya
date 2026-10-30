@@ -89,99 +89,52 @@ micButton.addEventListener('click', () => {
 });
 loadHistory();
 
-// 3D character stage. A licensed rigged model can replace the procedural preview via AVATAR_MODEL_URL.
+// RIYA portrait stage. Place the generated portrait at frontend/assets/riya.png.
 const mount = document.querySelector('#scene');
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x090d18);
 scene.fog = new THREE.Fog(0x090d18, 8, 18);
 const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.1, 100);
-camera.position.set(0, 0.15, 7.8);
+camera.position.set(0, 0.05, 7.8);
 const renderer = new THREE.WebGLRenderer({antialias:true, alpha:false, powerPreference:'low-power'});
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.15;
+renderer.toneMappingExposure = 1.1;
 mount.appendChild(renderer.domElement);
-
-scene.add(new THREE.HemisphereLight(0xcbdcff, 0x30202b, 2.0));
-const keyLight = new THREE.DirectionalLight(0xffdfd0, 3.0);
+scene.add(new THREE.HemisphereLight(0xcbdcff, 0x30202b, 1.8));
+const keyLight = new THREE.DirectionalLight(0xffdfd0, 2.2);
 keyLight.position.set(-3, 4, 5); scene.add(keyLight);
-const fillLight = new THREE.PointLight(0x829bff, 18, 12);
-fillLight.position.set(3, 1, 3); scene.add(fillLight);
-const rimLight = new THREE.PointLight(0xc28cff, 22, 10);
-rimLight.position.set(0, 2, -3); scene.add(rimLight);
 
 const avatar = new THREE.Group();
 scene.add(avatar);
-const skin = new THREE.MeshStandardMaterial({color:0xc98f78, roughness:.68});
-const hair = new THREE.MeshStandardMaterial({color:0x211923, roughness:.82});
-const shirt = new THREE.MeshStandardMaterial({color:0x343d59, roughness:.82});
-const dark = new THREE.MeshStandardMaterial({color:0x241b20, roughness:.5});
-const eyeWhite = new THREE.MeshStandardMaterial({color:0xf2e9e4, roughness:.4});
-const lip = new THREE.MeshStandardMaterial({color:0x985a62, roughness:.55});
-const sphere = (parent, r, material, x,y,z,sx=1,sy=1,sz=1, w=32,h=24) => {
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(r,w,h),material);
-  mesh.position.set(x,y,z); mesh.scale.set(sx,sy,sz); parent.add(mesh); return mesh;
-};
+let portraitMesh = null;
+let portraitReady = false;
+new THREE.TextureLoader().load('./assets/riya.png', texture => {
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const aspect = texture.image.width / texture.image.height;
+  const height = 5.2;
+  const material = new THREE.MeshBasicMaterial({map:texture, transparent:false});
+  portraitMesh = new THREE.Mesh(new THREE.PlaneGeometry(height * aspect, height), material);
+  portraitMesh.position.set(0, -0.2, 0);
+  avatar.add(portraitMesh);
+  portraitReady = true;
+}, undefined, () => console.warn('Add the generated portrait at frontend/assets/riya.png to show RIYA.'));
 
-// Bust and neck
-sphere(avatar,.88,shirt,0,-1.38,-.12,1.25,.95,.72,40,28);
-sphere(avatar,.25,skin,0,-.52,0,.78,1.1,.8);
-const head = new THREE.Group(); avatar.add(head); head.position.y=.18;
-sphere(head,.57,skin,0,0,0,.86,1.12,.78,48,36);
-// Hair cap and side locks
-sphere(head,.59,hair,0,.34,-.12,.98,.72,.88,48,32);
-sphere(head,.19,hair,-.47,-.02,.02,.78,1.55,.78);
-sphere(head,.19,hair,.47,-.02,.02,.78,1.55,.78);
-const fringe = sphere(head,.25,hair,-.17,.39,.42,1.2,.72,.42);
-fringe.rotation.z=-.25;
-sphere(head,.16,hair,.12,.43,.42,1.15,.62,.4).rotation.z=.18;
-// Ears and facial features
-sphere(head,.09,skin,-.49,-.08,0,.7,1.2,.65);
-sphere(head,.09,skin,.49,-.08,0,.7,1.2,.65);
-sphere(head,.065,eyeWhite,-.17,.04,.635,1,.78,.35);
-sphere(head,.065,eyeWhite,.17,.04,.635,1,.78,.35);
-const leftEye=sphere(head,.031,dark,-.17,.035,.663,1,1,.55);
-const rightEye=sphere(head,.031,dark,.17,.035,.663,1,1,.55);
-sphere(head,.014,eyeWhite,-.18,.05,.68,1,1,.5);
-sphere(head,.014,eyeWhite,.16,.05,.68,1,1,.5);
-const nose=sphere(head,.045,skin,0,-.09,.67,.72,1.1,.65);
-const mouth=sphere(head,.052,lip,0,-.25,.64,.9,.22,.35);
-mouth.scale.y=.16;
-const browsMat=new THREE.MeshStandardMaterial({color:0x392630,roughness:.8});
-const browL=sphere(head,.075,browsMat,-.17,.16,.61,1.5,.25,.3);
-const browR=sphere(head,.075,browsMat,.17,.16,.61,1.5,.25,.3);
-browL.rotation.z=.08; browR.rotation.z=-.08;
-
-if (AVATAR_MODEL_URL) {
-  new GLTFLoader().load(AVATAR_MODEL_URL, gltf => {
-    avatar.remove(head);
-    avatar.remove(avatar.children.find(child => child !== head));
-    avatar.add(gltf.scene);
-  }, undefined, error => console.warn('RIYA avatar model could not be loaded:', error));
-}
-
-let frame=0, blink=0, nextBlink=2.5;
+let frame=0;
+const clock=new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   const dt=clock.getDelta(); frame+=dt;
-  avatar.position.y=Math.sin(frame*1.15)*.035;
-  avatar.rotation.y=Math.sin(frame*.32)*.045;
-  head.rotation.y=Math.sin(frame*.48)*.025;
-  head.rotation.x=Math.sin(frame*.7)*.012;
-  if (frame > nextBlink) { blink=.16; nextBlink=frame+2.2+Math.random()*3.2; }
-  blink=Math.max(0,blink-dt*2.8);
-  const eyeScale=Math.max(.08,1-blink*5.5);
-  // Subtle eyelid-like blink on both eyes.
-  leftEye.scale.y=.031*eyeScale; rightEye.scale.y=.031*eyeScale;
-  const speaking=avatarState==='talking';
-  mouth.scale.y=speaking ? .16+Math.abs(Math.sin(frame*13))*.42 : .16;
-  mouth.scale.x=avatarState==='listening' ? 1.08 : .9;
-  if (avatarState==='listening') head.rotation.x=-.035+Math.sin(frame*2)*.012;
+  avatar.position.y=Math.sin(frame*1.15)*.025;
+  avatar.rotation.y=Math.sin(frame*.32)*.018;
+  if (portraitMesh) {
+    const talking = avatarState === 'talking';
+    portraitMesh.scale.y = 1 + (talking ? Math.abs(Math.sin(frame*8))*.006 : 0);
+  }
   renderer.render(scene,camera);
 }
-const clock=new THREE.Clock();
 animate();
 addEventListener('resize', () => {
   camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
