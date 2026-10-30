@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101522">
+  <meta name="description" content="RIYA — a friendly virtual companion">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
+  <title>RIYA</title>
+</head>
+<body>
+  <main class="app-shell">
+    <div id="scene" class="scene" aria-label="Animated 3D avatar"></div>
+    <header class="topbar glass">
+      <div class="brand"><span class="status-dot"></span><div><strong>RIYA</strong><small>Virtual companion · Demo</small></div></div>
+      <button id="settingsBtn" class="icon-btn" aria-label="Settings">⚙</button>
+    </header>
+
+    <section class="greeting glass">
+      <span class="eyebrow">YOUR COMPANION</span>
+      <h1>Hi, welcome back.</h1>
+      <p>I’m RIYA. What would you like to talk about?</p>
+    </section>
+
+    <section class="chat glass" aria-label="Conversation">
+      <div id="messages" class="messages" aria-live="polite">
+        <div class="bubble assistant">Hello! The RIYA foundation is ready. Send a message to test the demo chat.</div>
+      </div>
+      <form id="chatForm" class="composer">
+        <input id="messageInput" autocomplete="off" maxlength="2000" placeholder="Write a message…" aria-label="Message">
+        <button class="send-btn" type="submit" aria-label="Send message">➤</button>
+      </form>
+      <div class="voice-row">
+        <button id="micBtn" class="pill-btn">🎙 <span>Voice input</span></button>
+        <button id="muteBtn" class="pill-btn" aria-pressed="false">🔊 <span>Voice on</span></button>
+        <button id="clearBtn" class="pill-btn">Clear chat</button>
+      </div>
+    </section>
+    <footer>RIYA is an AI demo character. Responses may be generated or limited by connected services.</footer>
+  </main>
+  <dialog id="settingsDialog" class="settings glass">
+    <form method="dialog">
+      <h2>Settings</h2>
+      <p>Memory is stored in this browser for this starter build.</p>
+      <label class="setting-line"><input type="checkbox" id="speechToggle" checked> Read replies aloud</label>
+      <button class="pill-btn close-btn">Close</button>
+    </form>
+  </dialog>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
