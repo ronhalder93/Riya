@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: riya-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: RIYA_ALLOWED_ORIGINS
+        value: "*"
+      - key: RIYA_AI_PROVIDER
+        value: demo
