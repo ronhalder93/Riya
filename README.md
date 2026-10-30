@@ -2,15 +2,16 @@
 
 RIYA is an Android-first, installable PWA starter for a friendly AI virtual companion.
 
-> Current milestone: Phase 1 foundation. This repository is a working scaffold, not a completed product. The 3D avatar is a lightweight procedural placeholder and must be replaced by a properly licensed, rigged GLB character for production.
+> Current milestone: Phase 2 foundation. The 3D avatar is a lightweight procedural placeholder and must be replaced by a properly licensed, rigged GLB character for production.
 
 ## Stack
 
 - Frontend: HTML, CSS, JavaScript, Three.js
 - Backend: Python + FastAPI
+- AI: OpenAI Responses API (server-side; optional until a key is configured)
 - Local chat history: browser localStorage (starter implementation)
 - PWA: manifest + service worker
-- Hosting target: Render
+- Hosting: Render
 
 ## Project layout
 
@@ -40,11 +41,20 @@ riya/
 ```bash
 cd backend
 python -m venv .venv
-# Windows: .venv\Scripts\activate
+# Windows: .venv\\Scripts\\activate
 source .venv/bin/activate
 pip install -r requirements.txt
+```
+
+Set `OPENAI_API_KEY` in your local shell (never in source code), then run:
+
+```bash
+export RIYA_AI_PROVIDER=openai
+export OPENAI_MODEL=gpt-6-luna
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+On Windows PowerShell use `$env:OPENAI_API_KEY="your-key"` and `$env:RIYA_AI_PROVIDER="openai"`.
 
 ### Frontend
 
@@ -54,24 +64,31 @@ For microphone features, use HTTPS or localhost. Browser speech recognition supp
 
 ## Deploying on Render
 
-The included `render.yaml` defines a free-instance web service. Set environment variables in Render before enabling a real AI provider. Free instance availability and sleep behavior are controlled by Render and may change.
+For the backend service, add these in Render's Environment settings:
+- `RIYA_AI_PROVIDER` = `openai`
+- `OPENAI_MODEL` = `gpt-6-luna`
+- `OPENAI_API_KEY` = your secret API key (mark as secret if the dashboard offers that option)
+
+Save changes to trigger a redeploy. If the key is absent, RIYA safely remains in demo mode. Never add a real key to GitHub, frontend JavaScript, screenshots, or chat messages. Rotate the key immediately if it is exposed.
+
+API usage may incur charges. Have a parent/guardian manage the API account, billing, and secret key if you are under 18. Set a low usage budget/limit in the API account and monitor usage.
 
 ## AI provider safety and security
 
-- Never put provider API keys in frontend code.
-- Add provider credentials as backend environment variables.
-- The starter backend intentionally returns a local fallback response until a provider adapter is configured.
-- Add provider-specific rate limits, timeouts, retries, and usage caps before public deployment.
+- The browser never receives the provider API key; requests go through the FastAPI backend.
+- Uses the OpenAI Responses API with a short validated history window, request timeout, limited output, and `store=False`.
+- The backend never logs prompts, credentials, or raw provider errors.
 - Do not promise unlimited free inference.
+- This starter has no user authentication; do not expose the API publicly without adding abuse protection and per-user rate limits.
 
 ## Character and companion boundaries
 
-RIYA is designed as a fictional, friendly, supportive character. Avoid presenting it as a real person or encouraging emotional dependency. Provide clear controls to pause voice, clear local history, and reset preferences.
+RIYA is a fictional, friendly, supportive AI assistant. It should not present itself as a real person or romantic partner or encourage emotional dependency. Provide clear controls to pause voice, clear local history, and reset preferences.
 
 ## Roadmap
 
 1. Phase 1: mobile HUD, procedural avatar placeholder, PWA shell, backend health/chat endpoints.
-2. Phase 2: secure AI provider adapter and conversation context.
+2. Phase 2: secure OpenAI Responses API adapter (implemented; requires server-side key).
 3. Phase 3: speech input/output and basic mouth animation.
 4. Phase 4: user-controlled memory and export/delete controls.
 5. Phase 5: licensed rigged character, facial blendshapes, and optimized animations.
@@ -82,7 +99,7 @@ RIYA is designed as a fictional, friendly, supportive character. Avoid presentin
 
 ## Current limitations
 
+- OpenAI replies require a valid API key and API billing/usage allowance.
 - The avatar is procedural and not a photorealistic custom model.
 - Browser speech APIs are not consistently available across Android browsers.
-- The chat endpoint is a safe local fallback, not connected to an external AI provider.
 - No APK is included.
