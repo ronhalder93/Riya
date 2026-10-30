@@ -103,3 +103,23 @@ RIYA is a fictional, friendly, supportive AI assistant. It should not present it
 - The avatar is procedural and not a photorealistic custom model.
 - Browser speech APIs are not consistently available across Android browsers.
 - No APK is included.
+
+## RIYA realtime voice agent
+
+The LiveKit voice agent lives in `backend/agent.py`. It uses LiveKit Inference for multilingual speech-to-text, the language model, and text-to-speech, so no separate speech-provider API keys are required. LiveKit Inference usage is subject to the project's included quota and current pricing.
+
+### Deploy the agent to LiveKit Cloud
+
+From a terminal on a computer with the LiveKit CLI installed:
+
+```bash
+cd backend
+lk cloud auth
+lk agent create
+```
+
+Choose the RIYA LiveKit project when prompted. The deployed agent dispatch name is `riya-agent`; the FastAPI token endpoint requests this agent when a new call room is created.
+
+Keep `LIVEKIT_URL`, `LIVEKIT_API_KEY`, and `LIVEKIT_API_SECRET` configured as secrets in Render for the API service. Do not commit credentials or paste them into chat. The LiveKit agent deployment also needs the same three values configured as deployment secrets if the CLI prompts for them.
+
+After deployment, open the RIYA website and start a new call. The agent should join the newly created room and greet the participant. Existing text chat remains available independently.
