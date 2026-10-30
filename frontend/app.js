@@ -52,7 +52,7 @@ const mouth=ball(head,0,-.43,.625,.22,.045,.055,dark);
 const lowerLip=ball(head,0,-.48,.63,.16,.025,.035,lip);
 ball(head,-.84,-.1,.02,.13,.2,.12,skin);ball(head,.84,-.1,.02,.13,.2,.12,skin);
 const hairBack=ball(head,0,-.2,-.39,.84,.9,.3,hair);hairBack.position.z=-.39;
-const eyes=[head.children[5],head.children[8]];
+const eyes=[head.children[5],head.children[9]];
 
 let frame=0;const clock=new THREE.Clock();let talkPulse=0;function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);frame+=dt;const talking=avatarState==='talking';const target=talking?1:0;talkPulse+=(target-talkPulse)*Math.min(1,dt*(talking?10:3));const beat=talking?Math.abs(Math.sin(frame*11)):0;mouth.scale.y=.045+talkPulse*(.13+beat*.18);lowerLip.position.y=-.48-talkPulse*(.025+beat*.025);head.rotation.y=Math.sin(frame*.7)*.045;head.rotation.z=Math.sin(frame*1.1)*.012;head.position.y=.62+Math.sin(frame*1.8)*.025;avatar.position.y=-.12+Math.sin(frame*1.8)*.035;avatar.rotation.y=Math.sin(frame*.35)*.025;const blink=Math.pow(Math.max(0,Math.sin(frame*.7-1.1)),36);for(const eye of eyes)eye.scale.y=.14*(1-blink*.88);renderer.render(scene,camera)}animate();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight)});
