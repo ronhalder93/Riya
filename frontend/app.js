@@ -5,7 +5,7 @@ const messagesEl = document.querySelector('#messages');
 const form = document.querySelector('#chatForm');
 const input = document.querySelector('#messageInput');
 const speechToggle = document.querySelector('#speechToggle');
-let voiceEnabled = true;
+let voiceEnabled = false;
 let recognition = null;
 
 function addMessage(text, role) {
@@ -48,7 +48,7 @@ async function sendMessage(text) {
     if (!response.ok) throw new Error(`API ${response.status}`);
     const data = await response.json();
     addMessage(data.reply, 'assistant'); saveHistory(data.reply, 'assistant');
-    if (voiceEnabled && speechToggle.checked && 'speechSynthesis' in window) {
+    if (voiceEnabled && speechToggle?.checked && 'speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(data.reply);
       utterance.lang = /[\u0900-\u097F]/.test(data.reply) ? 'hi-IN' : 'en-IN';
       window.speechSynthesis.cancel(); window.speechSynthesis.speak(utterance);
@@ -59,18 +59,6 @@ async function sendMessage(text) {
   }
 }
 form.addEventListener('submit', e => { e.preventDefault(); sendMessage(input.value); });
-document.querySelector('#clearBtn').addEventListener('click', () => {
-  localStorage.removeItem('riya-chat'); messagesEl.replaceChildren();
-  addMessage('Chat history cleared on this browser.', 'assistant');
-  window.speechSynthesis?.cancel();
-});
-document.querySelector('#muteBtn').addEventListener('click', e => {
-  voiceEnabled = !voiceEnabled;
-  e.currentTarget.setAttribute('aria-pressed', String(!voiceEnabled));
-  e.currentTarget.innerHTML = voiceEnabled ? '🔊 <span>Voice on</span>' : '🔇 <span>Voice muted</span>';
-  if (!voiceEnabled) window.speechSynthesis?.cancel();
-});
-document.querySelector('#settingsBtn').addEventListener('click', () => document.querySelector('#settingsDialog').showModal());
 document.querySelector('#micBtn').addEventListener('click', () => {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) { addMessage('Voice input is not supported in this browser. You can still type messages.', 'assistant'); return; }
@@ -81,7 +69,7 @@ document.querySelector('#micBtn').addEventListener('click', () => {
   }
   recognition.start();
 });
-speechToggle.addEventListener('change', () => { if (!speechToggle.checked) window.speechSynthesis?.cancel(); });
+speechToggle?.addEventListener('change', () => { if (!speechToggle.checked) window.speechSynthesis?.cancel(); });
 loadHistory();
 
 // Lightweight procedural avatar placeholder. Replace with a licensed, optimized rigged GLB model later.
