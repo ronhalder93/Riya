@@ -68,9 +68,14 @@ async def generate_reply(message: str, history: list[dict]) -> ChatResult:
         if not answer:
             return ChatResult("I couldn't form a reply just now. Please try again.", "openai")
         return ChatResult(answer[:5000], "openai")
-    except Exception:
-        # Never log request bodies, credentials, or raw provider error details.
-        logger.warning("OpenAI request failed; returning a safe temporary error.")
+    except Exception as exc:
+        # Log only safe diagnostics; never log request bodies, credentials, or raw provider details.
+        status_code = getattr(exc, "status_code", None)
+        logger.warning(
+            "OpenAI request failed (type=%s, status=%s); returning a safe temporary error.",
+            type(exc).__name__,
+            status_code,
+        )
         return ChatResult(
             "RIYA couldn't reach the AI service just now. Please try again in a moment.",
             "openai-error",
