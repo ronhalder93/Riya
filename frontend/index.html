@@ -12,6 +12,11 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080b12;col
 .app-shell{position:relative;width:100%;height:100vh;height:100dvh;overflow:hidden}
 .scene{position:fixed!important;inset:0!important;z-index:0!important}
 .scene canvas{display:block;width:100%;height:100%}
+.avatar-status{position:fixed;z-index:3;top:calc(18px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:9px;padding:9px 14px;border:1px solid #ffffff24;border-radius:999px;background:#0b1020a8;color:#e7eafa;font:600 10px/1 system-ui,sans-serif;letter-spacing:.16em;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);pointer-events:none;white-space:nowrap}
+.status-dot{width:7px;height:7px;border-radius:50%;background:#a6b5ff;box-shadow:0 0 12px #a6b5ff}
+#avatarState[data-state="listening"]+.status-dot{background:#75e0c0}
+#avatarState[data-state="thinking"]{color:#c7caff}
+#avatarState[data-state="talking"]{color:#ffd5c8}
 .chat{position:fixed!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;z-index:10!important;padding:12px 12px calc(12px + env(safe-area-inset-bottom))!important;pointer-events:none}
 .messages{display:flex;flex-direction:column;gap:9px;max-height:34vh;overflow:auto;padding:0 2px 12px;pointer-events:auto}
 .bubble{max-width:84%;padding:11px 14px;border-radius:18px;font:14px/1.45 system-ui,sans-serif;overflow-wrap:anywhere}
@@ -27,6 +32,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080b12;col
 <body>
   <main class="app-shell">
     <div id="scene" class="scene" aria-label="Live animated RIYA background"></div>
+    <div class="avatar-status" aria-live="polite"><span class="status-dot"></span><span id="avatarState">HERE WITH YOU</span></div>
     <section class="chat" aria-label="Conversation">
       <div id="messages" class="messages" aria-live="polite"></div>
       <form id="chatForm" class="composer">
