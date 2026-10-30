@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: "Choose create for first deployment, deploy for updates"
+        description: "Deploy updates to the existing RIYA agent"
         required: true
         type: choice
         options:
           - create
           - deploy
-        default: create
+        default: deploy
 
 permissions:
   contents: write
