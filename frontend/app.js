@@ -1,6 +1,6 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 
-const API_BASE = ''; // Set to your deployed FastAPI URL, e.g. https://your-api.onrender.com
+const API_BASE = 'https://riya-api-plnn.onrender.com';
 const messagesEl = document.querySelector('#messages');
 const form = document.querySelector('#chatForm');
 const input = document.querySelector('#messageInput');
