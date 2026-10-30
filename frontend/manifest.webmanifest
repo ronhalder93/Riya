@@ -1,0 +1,10 @@
+{
+  "name": "RIYA Virtual Companion",
+  "short_name": "RIYA",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b101b",
+  "theme_color": "#101522",
+  "description": "A friendly virtual companion"
+}
