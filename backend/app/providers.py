@@ -27,12 +27,12 @@ def _demo_reply(message: str) -> ChatResult:
         return ChatResult("Type a message and I'll respond.")
     return ChatResult(
         f"I’m here to chat. You said: “{clean[:400]}”. "
-        "Add the server-side OpenAI key to enable AI replies."
+        "Add the server-side Groq key to enable AI replies."
     )
 
 
 async def generate_reply(message: str, history: list[dict]) -> ChatResult:
-    """Use Groq Responses API when configured; otherwise use safe demo fallback."""
+    """Use Groq Chat Completions when configured; otherwise use safe demo fallback."""
     clean = message.strip()
     if not clean:
         return ChatResult("Type a message and I'll respond.")
@@ -62,17 +62,16 @@ async def generate_reply(message: str, history: list[dict]) -> ChatResult:
             timeout=30.0,
             max_retries=1,
         )
-        response = await client.responses.create(
+        messages = [{"role": "system", "content": SYSTEM_INSTRUCTIONS}, *input_items]
+        response = await client.chat.completions.create(
             model=os.getenv("GROQ_MODEL", "openai/gpt-oss-120b"),
-            instructions=SYSTEM_INSTRUCTIONS,
-            input=input_items,
-            max_output_tokens=350,
-            store=False,
+            messages=messages,
+            max_tokens=350,
         )
-        answer = (response.output_text or "").strip()
+        answer = (response.choices[0].message.content or "").strip()
         if not answer:
             return ChatResult("I couldn't form a reply just now. Please try again.", "groq")
-        return ChatResult(answer[:5000], "openai")
+        return ChatResult(answer[:5000], "groq")
     except Exception as exc:
         # Log only safe diagnostics; never log request bodies, credentials, or raw provider details.
         status_code = getattr(exc, "status_code", None)
