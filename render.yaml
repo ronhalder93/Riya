@@ -11,6 +11,10 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.9
       - key: RIYA_ALLOWED_ORIGINS
-        value: "*"
+        value: https://riya-web.onrender.com
       - key: RIYA_AI_PROVIDER
-        value: demo
+        value: openai
+      - key: OPENAI_MODEL
+        value: gpt-6-luna
+      - key: OPENAI_API_KEY
+        sync: false
