@@ -71,10 +71,21 @@ async def generate_reply(message: str, history: list[dict]) -> ChatResult:
     except Exception as exc:
         # Log only safe diagnostics; never log request bodies, credentials, or raw provider details.
         status_code = getattr(exc, "status_code", None)
+        error_body = getattr(exc, "body", None)
+        error_info = error_body.get("error", {}) if isinstance(error_body, dict) else {}
+        error_code = error_info.get("code") if isinstance(error_info, dict) else None
+        error_type = error_info.get("type") if isinstance(error_info, dict) else None
+        # Log only short, non-secret diagnostic labels; never log raw messages or request data.
+        if not isinstance(error_code, str) or len(error_code) > 80:
+            error_code = None
+        if not isinstance(error_type, str) or len(error_type) > 80:
+            error_type = None
         logger.warning(
-            "OpenAI request failed (type=%s, status=%s); returning a safe temporary error.",
+            "OpenAI request failed (exception=%s, status=%s, code=%s, error_type=%s).",
             type(exc).__name__,
             status_code,
+            error_code,
+            error_type,
         )
         return ChatResult(
             "RIYA couldn't reach the AI service just now. Please try again in a moment.",
