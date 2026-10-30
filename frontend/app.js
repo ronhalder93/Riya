@@ -32,11 +32,18 @@ function saveHistory(text, role) {
 async function sendMessage(text) {
   const clean = text.trim();
   if (!clean) return;
+  let history = [];
+  try {
+    const saved = JSON.parse(localStorage.getItem('riya-chat') || '[]');
+    history = saved.slice(-11, -1)
+      .filter(item => ['user', 'assistant'].includes(item.role) && typeof item.text === 'string')
+      .map(item => ({role: item.role, content: item.text.slice(0, 2000)}));
+  } catch { /* ignore malformed local history */ }
   addMessage(clean, 'user'); saveHistory(clean, 'user'); input.value = '';
   try {
     const response = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({message: clean, history: []})
+      body: JSON.stringify({message: clean, history})
     });
     if (!response.ok) throw new Error(`API ${response.status}`);
     const data = await response.json();
