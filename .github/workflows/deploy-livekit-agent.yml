@@ -1,0 +1,40 @@
+name: Deploy RIYA voice agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Choose create for first deployment, deploy for updates"
+        required: true
+        type: choice
+        options:
+          - create
+          - deploy
+        default: create
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: riya-livekit-agent
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Create or deploy RIYA on LiveKit Cloud
+        uses: livekit/deploy-action@v2.12.2
+        env:
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+          SECRET_LIST: ""
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          OPERATION: ${{ inputs.operation }}
+          WORKING_DIRECTORY: backend
