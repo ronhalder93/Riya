@@ -1,50 +1,38 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#080b12">
-  <meta name="description" content="RIYA — a friendly virtual companion">
-  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./styles.css?v=3">
-  <style>
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080b12;color:#f5f6fb}
-.app-shell{position:relative;width:100%;height:100vh;height:100dvh;overflow:hidden}
-.scene{position:fixed!important;inset:0!important;z-index:0!important}
-.scene canvas{display:block;width:100%;height:100%}
-.avatar-status{position:fixed;z-index:3;top:calc(18px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:9px;padding:9px 14px;border:1px solid #ffffff24;border-radius:999px;background:#0b1020a8;color:#e7eafa;font:600 10px/1 system-ui,sans-serif;letter-spacing:.16em;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);pointer-events:none;white-space:nowrap}
-.status-dot{width:7px;height:7px;border-radius:50%;background:#a6b5ff;box-shadow:0 0 12px #a6b5ff}
-#avatarState[data-state="listening"]+.status-dot{background:#75e0c0}
-#avatarState[data-state="thinking"]{color:#c7caff}
-#avatarState[data-state="talking"]{color:#ffd5c8}
-.chat{position:fixed!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;z-index:10!important;padding:12px 12px calc(12px + env(safe-area-inset-bottom))!important;pointer-events:none}
-.messages{display:flex;flex-direction:column;gap:9px;max-height:34vh;overflow:auto;padding:0 2px 12px;pointer-events:auto}
-.bubble{max-width:84%;padding:11px 14px;border-radius:18px;font:14px/1.45 system-ui,sans-serif;overflow-wrap:anywhere}
-.assistant{align-self:flex-start;background:#20283bcc;color:#fff}.user{align-self:flex-end;background:#5b75de;color:#fff}
-.composer{height:58px;display:flex;align-items:center;gap:10px;padding:6px 7px 6px 13px;border:1px solid #ffffff33;border-radius:999px;background:#0d111bcc;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);pointer-events:auto}
-#liveStage{position:fixed;inset:0;z-index:1;display:none;pointer-events:none}#liveStage video{width:100%;height:100%;object-fit:cover}#callBtn{background:#173b37;color:#b9ffe9;font-size:19px}.composer input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:white;font:16px system-ui,sans-serif}
-.composer input::placeholder{color:#aab1c0}
-.tool-btn,.send-btn{appearance:none;-webkit-appearance:none;flex:0 0 44px;width:44px;height:44px;border:0;border-radius:50%;display:grid;place-items:center;padding:0}
-.tool-btn{background:transparent;color:white;font-size:23px}.send-btn{background:#7188f5;color:white;font-size:24px}
-@media(min-width:700px){.chat{left:50%!important;right:auto!important;transform:translateX(-50%);width:min(680px,calc(100% - 48px))}}
-</style>\n  <title>RIYA</title>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f7f8fc"><meta name="description" content="RIYA — a friendly virtual companion">
+  <link rel="manifest" href="./manifest.webmanifest"><link rel="stylesheet" href="./styles.css?v=4"><title>RIYA</title>
 </head>
 <body>
-  <main class="app-shell">
-    <div id="scene" class="scene" aria-label="RIYA avatar background"></div>
-    <div id="liveStage" aria-label="LiveKit remote avatar video"></div>
-    <div class="avatar-status" aria-live="polite"><span class="status-dot"></span><span id="avatarState">HERE WITH YOU</span></div>
-    <section class="chat" aria-label="Conversation">
-      <div id="messages" class="messages" aria-live="polite"></div>
-      <form id="chatForm" class="composer">
-        <button id="micBtn" class="tool-btn" type="button" aria-label="Voice input">🎙</button>
-        <button id="callBtn" class="tool-btn" type="button" aria-label="Connect live call">◉</button>
-        <input id="messageInput" autocomplete="off" maxlength="2000" placeholder="Message RIYA…" aria-label="Message">
-        <button class="send-btn" type="submit" aria-label="Send message">↑</button>
-      </form>
-    </section>
-  </main>
-  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
-  <script type="module" src="./app.js"></script>
-</body>
-</html>
+<main class="app-shell">
+  <div id="scene" class="scene" aria-label="RIYA avatar background"></div>
+  <video id="cameraPreview" class="camera-preview" autoplay muted playsinline aria-label="Your camera preview"></video>
+  <div class="camera-shade"></div>
+  <div class="topbar">
+    <div class="brand"><span class="brand-mark">♡</span><span>RIYA</span><small id="avatarState">READY</small></div>
+    <div class="top-controls">
+      <label class="quality-label" for="qualitySelect">CAM</label>
+      <select id="qualitySelect" aria-label="Camera quality"><option value="144">144p</option><option value="240">240p</option><option value="360" selected>360p</option><option value="480">480p</option><option value="720">720p</option></select>
+      <button id="voiceToggle" class="hud-btn" type="button" aria-pressed="true">🔊 Voice ON</button>
+      <button id="cameraToggle" class="hud-btn camera-on" type="button">Start camera</button>
+      <button id="cameraStop" class="hud-btn stop-btn" type="button" disabled>Stop</button>
+    </div>
+  </div>
+  <div id="cameraNotice" class="camera-notice">Camera is off · Tap “Start camera” to enable a visible local preview</div>
+  <section class="chat" aria-label="Conversation">
+    <div id="messages" class="messages" aria-live="polite"></div>
+    <form id="chatForm" class="composer">
+      <input id="fileInput" type="file" hidden multiple>
+      <button id="attachBtn" class="tool-btn" type="button" aria-label="Attach files">＋</button>
+      <input id="messageInput" autocomplete="off" maxlength="2000" placeholder="Message RIYA…" aria-label="Message">
+      <button id="micBtn" class="tool-btn mic-btn" type="button" aria-label="Voice input">🎙</button>
+      <button class="send-btn" type="submit" aria-label="Send message">↑</button>
+    </form>
+    <div id="attachmentList" class="attachment-list" aria-live="polite"></div>
+  </section>
+</main>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<script type="module" src="./app.js"></script>
+</body></html>
