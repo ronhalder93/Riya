@@ -71,6 +71,11 @@ async def livekit_token(payload: LiveKitTokenRequest):
             .with_name(identity)
             .with_ttl(60 * 30)
             .with_grants(api.VideoGrants(room_join=True, room=room, can_publish=True, can_subscribe=True))
+            .with_room_config(
+                api.RoomConfiguration(
+                    agents=[api.RoomAgentDispatch(agent_name="riya-agent")]
+                )
+            )
             .to_jwt()
         )
     except Exception as exc:
