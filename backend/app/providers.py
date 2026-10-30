@@ -32,14 +32,14 @@ def _demo_reply(message: str) -> ChatResult:
 
 
 async def generate_reply(message: str, history: list[dict]) -> ChatResult:
-    """Use OpenAI Responses API when configured; otherwise use safe demo fallback."""
+    """Use Groq Responses API when configured; otherwise use safe demo fallback."""
     clean = message.strip()
     if not clean:
         return ChatResult("Type a message and I'll respond.")
 
-    provider = os.getenv("RIYA_AI_PROVIDER", "demo").lower()
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    if provider != "openai" or not api_key:
+    provider = os.getenv("RIYA_AI_PROVIDER", "groq").lower()
+    api_key = os.getenv("GROQ_API_KEY", "").strip()
+    if provider != "groq" or not api_key:
         return _demo_reply(clean)
 
     # Only pass a small, validated conversation window to the model.
@@ -56,9 +56,14 @@ async def generate_reply(message: str, history: list[dict]) -> ChatResult:
     input_items.append({"role": "user", "content": clean[:2000]})
 
     try:
-        client = AsyncOpenAI(api_key=api_key, timeout=30.0, max_retries=1)
+        client = AsyncOpenAI(
+            api_key=api_key,
+            base_url="https://api.groq.com/openai/v1",
+            timeout=30.0,
+            max_retries=1,
+        )
         response = await client.responses.create(
-            model=os.getenv("OPENAI_MODEL", "gpt-6-luna"),
+            model=os.getenv("GROQ_MODEL", "openai/gpt-oss-120b"),
             instructions=SYSTEM_INSTRUCTIONS,
             input=input_items,
             max_output_tokens=350,
@@ -66,7 +71,7 @@ async def generate_reply(message: str, history: list[dict]) -> ChatResult:
         )
         answer = (response.output_text or "").strip()
         if not answer:
-            return ChatResult("I couldn't form a reply just now. Please try again.", "openai")
+            return ChatResult("I couldn't form a reply just now. Please try again.", "groq")
         return ChatResult(answer[:5000], "openai")
     except Exception as exc:
         # Log only safe diagnostics; never log request bodies, credentials, or raw provider details.
@@ -81,7 +86,7 @@ async def generate_reply(message: str, history: list[dict]) -> ChatResult:
         if not isinstance(error_type, str) or len(error_type) > 80:
             error_type = None
         logger.warning(
-            "OpenAI request failed (exception=%s, status=%s, code=%s, error_type=%s).",
+            "Groq request failed (exception=%s, status=%s, code=%s, error_type=%s).",
             type(exc).__name__,
             status_code,
             error_code,
@@ -89,5 +94,5 @@ async def generate_reply(message: str, history: list[dict]) -> ChatResult:
         )
         return ChatResult(
             "RIYA couldn't reach the AI service just now. Please try again in a moment.",
-            "openai-error",
+            "groq-error",
         )
