@@ -7,7 +7,22 @@
   <meta name="description" content="RIYA — a friendly virtual companion">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./styles.css?v=3">
-  <title>RIYA</title>
+  <style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080b12;color:#f5f6fb}
+.app-shell{position:relative;width:100%;height:100vh;height:100dvh;overflow:hidden}
+.scene{position:fixed!important;inset:0!important;z-index:0!important}
+.scene canvas{display:block;width:100%;height:100%}
+.chat{position:fixed!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;z-index:10!important;padding:12px 12px calc(12px + env(safe-area-inset-bottom))!important;pointer-events:none}
+.messages{display:flex;flex-direction:column;gap:9px;max-height:34vh;overflow:auto;padding:0 2px 12px;pointer-events:auto}
+.bubble{max-width:84%;padding:11px 14px;border-radius:18px;font:14px/1.45 system-ui,sans-serif;overflow-wrap:anywhere}
+.assistant{align-self:flex-start;background:#20283bcc;color:#fff}.user{align-self:flex-end;background:#5b75de;color:#fff}
+.composer{height:58px;display:flex;align-items:center;gap:10px;padding:6px 7px 6px 13px;border:1px solid #ffffff33;border-radius:999px;background:#0d111bcc;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);pointer-events:auto}
+.composer input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:white;font:16px system-ui,sans-serif}
+.composer input::placeholder{color:#aab1c0}
+.tool-btn,.send-btn{appearance:none;-webkit-appearance:none;flex:0 0 44px;width:44px;height:44px;border:0;border-radius:50%;display:grid;place-items:center;padding:0}
+.tool-btn{background:transparent;color:white;font-size:23px}.send-btn{background:#7188f5;color:white;font-size:24px}
+@media(min-width:700px){.chat{left:50%!important;right:auto!important;transform:translateX(-50%);width:min(680px,calc(100% - 48px))}}
+</style>\n  <title>RIYA</title>
 </head>
 <body>
   <main class="app-shell">
