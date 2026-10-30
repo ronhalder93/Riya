@@ -22,7 +22,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080b12;col
 .bubble{max-width:84%;padding:11px 14px;border-radius:18px;font:14px/1.45 system-ui,sans-serif;overflow-wrap:anywhere}
 .assistant{align-self:flex-start;background:#20283bcc;color:#fff}.user{align-self:flex-end;background:#5b75de;color:#fff}
 .composer{height:58px;display:flex;align-items:center;gap:10px;padding:6px 7px 6px 13px;border:1px solid #ffffff33;border-radius:999px;background:#0d111bcc;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);pointer-events:auto}
-.composer input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:white;font:16px system-ui,sans-serif}
+#liveStage{position:fixed;inset:0;z-index:1;display:none;pointer-events:none}#liveStage video{width:100%;height:100%;object-fit:cover}#callBtn{background:#173b37;color:#b9ffe9;font-size:19px}.composer input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:white;font:16px system-ui,sans-serif}
 .composer input::placeholder{color:#aab1c0}
 .tool-btn,.send-btn{appearance:none;-webkit-appearance:none;flex:0 0 44px;width:44px;height:44px;border:0;border-radius:50%;display:grid;place-items:center;padding:0}
 .tool-btn{background:transparent;color:white;font-size:23px}.send-btn{background:#7188f5;color:white;font-size:24px}
@@ -31,12 +31,14 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080b12;col
 </head>
 <body>
   <main class="app-shell">
-    <div id="scene" class="scene" aria-label="Live animated RIYA background"></div>
+    <div id="scene" class="scene" aria-label="RIYA avatar background"></div>
+    <div id="liveStage" aria-label="LiveKit remote avatar video"></div>
     <div class="avatar-status" aria-live="polite"><span class="status-dot"></span><span id="avatarState">HERE WITH YOU</span></div>
     <section class="chat" aria-label="Conversation">
       <div id="messages" class="messages" aria-live="polite"></div>
       <form id="chatForm" class="composer">
         <button id="micBtn" class="tool-btn" type="button" aria-label="Voice input">🎙</button>
+        <button id="callBtn" class="tool-btn" type="button" aria-label="Connect live call">◉</button>
         <input id="messageInput" autocomplete="off" maxlength="2000" placeholder="Message RIYA…" aria-label="Message">
         <button class="send-btn" type="submit" aria-label="Send message">↑</button>
       </form>
