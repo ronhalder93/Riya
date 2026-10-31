@@ -220,6 +220,17 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden && cameraStream) stopCamera();
 });
 
+// Remove legacy manual Wave/Heart/Hug controls. Avatar gestures remain chat-driven.
+function removeLegacyMotionButtons() {
+  document.querySelectorAll('.riya-motion-controls, .riya-motion-button, [data-action="wave"], [data-action="heart"], [data-action="hug"], button[aria-label="Wave"], button[aria-label="Heart"], button[aria-label="Hug"]').forEach((node) => node.remove());
+  document.querySelectorAll('button').forEach((button) => {
+    const label = (button.getAttribute('aria-label') || button.textContent || '').replace(/\p{Extended_Pictographic}/gu, '').trim().toLowerCase();
+    if (label === 'wave' || label === 'heart' || label === 'hug') button.remove();
+  });
+}
+removeLegacyMotionButtons();
+new MutationObserver(removeLegacyMotionButtons).observe(document.documentElement, { childList: true, subtree: true });
+
 loadHistory();
 
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
