@@ -96,9 +96,13 @@ async def generate_reply(message: str, history: list[dict]) -> ChatResult:
         return ChatResult("Type a message and I'll respond.")
 
     provider = os.getenv("RIYA_AI_PROVIDER", "openrouter").lower()
-    api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
-    if provider != "openrouter" or not api_key:
+    mega_key = os.getenv("MEGANOVA_API_KEY", "").strip()
+    openrouter_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    api_key = mega_key or openrouter_key
+    if provider not in {"openrouter", "meganova"} or not api_key:
         return _demo_reply(clean, history)
+    base_url = "https://inference.meganova.ai/v1" if mega_key else "https://openrouter.ai/api/v1"
+    default_model = "meganova-ai/manta-flash-1.0" if mega_key else "sao10k/l3.3-euryale-70b"
 
     input_items = []
     for item in history[-10:]:
@@ -115,13 +119,13 @@ async def generate_reply(message: str, history: list[dict]) -> ChatResult:
     try:
         client = AsyncOpenAI(
             api_key=api_key,
-            base_url="https://openrouter.ai/api/v1",
+            base_url=base_url,
             timeout=30.0,
             max_retries=0,
         )
         messages = [{"role": "system", "content": SYSTEM_INSTRUCTIONS}, *input_items]
         response = await client.chat.completions.create(
-            model=os.getenv("RIYA_LLM_MODEL", "sao10k/l3.3-euryale-70b"),
+            model=os.getenv("RIYA_LLM_MODEL", default_model),
             messages=messages,
             max_tokens=600,
         )
