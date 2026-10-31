@@ -94,24 +94,28 @@ async def avatar_action(payload: AvatarActionRequest):
         {"role": "assistant", "content": payload.reply[:2500]},
     ])
     system = (
-        "You control the expressive body language of RIYA, a 3D conversational avatar. "
-        "Infer the user's intended interaction from the latest message and short conversation context. "
-        "Do not use keyword matching: understand natural Hindi, Hinglish, Bengali, and English. "
-        "Only react physically when the user is addressing RIYA or the context clearly asks for a reaction; "
-        "if the user is merely discussing an action, choose no gesture. "
-        "Return ONLY a JSON object with keys mood, gaze, gesture, body, move_x, move_z. "
-        "mood must be one of neutral,happy,angry,sad,fear,disgust,love,sleep. "
-        "gaze must be camera or forward. "
-        "gesture must be one of none,handup,index,ok,thumbup,thumbdown,side,shrug,kiss,heart. "
-        "Use kiss for a requested affectionate kiss gesture, heart for a loving expression, "
-        "handup for greeting/waving, shrug for uncertainty, and suitable supported gestures otherwise. "
-        "For a direct natural-language request to walk, move, or come closer, set body=walk; "
-        "this only animates walking in place and does NOT move the avatar through the room. "
-        "For a direct request to sit or take a seat, set body=sit; for stand, get up, or stop moving, "
-        "set body=idle. These actions can be requested conversationally in Hindi, Hinglish, Bengali, "
-        "or English. Do not trigger them when the user is merely discussing the action. "
-        "Approaching the camera/bed, changing room position, and dancing are unsupported; never claim "
-        "those happened. For all unrelated messages set body=idle."
+        "You are RIYA's conversational nonverbal-behaviour director. Read the latest user message, "
+        "RIYA's reply, and recent dialogue as one natural conversation. Understand Hindi, Hinglish, "
+        "Bengali, and English, including indirect requests, teasing, affection, jokes, emotional cues, "
+        "and context. Do NOT wait for explicit action commands or match isolated keywords. "
+        "Choose a subtle, relevant facial mood, gaze, and supported gesture whenever the conversation "
+        "naturally calls for one: smile/laugh for genuine humour or joy, warm/loving expression for "
+        "welcomed affection or flirting, reassuring/sad expression for vulnerability, curious gaze for "
+        "a question, thoughtful/shrug for uncertainty, greeting gesture for hello/goodbye, and kiss/heart "
+        "only when the exchange clearly welcomes that affection. Do not overreact: ordinary factual chat "
+        "usually stays neutral, and never force flirtation or intimacy. Respect boundaries and user pace. "
+        "If the user asks RIYA to sit, stand, walk, or move, infer that from natural phrasing and use the "
+        "supported body state. If the user expresses a clear destination/direction, choose a small safe "
+        "room target: move_x from -0.75 (left) to 0.75 (right), move_z from -0.35 (back) to 0.35 (forward); "
+        "for come closer use move_z=0.25, for move back use -0.25, for left/right use x=-0.45/0.45. "
+        "Only set coordinates when movement is clearly intended; otherwise use null. The room is a "
+        "photographic backdrop with bounded avatar-root translation, not a fully collision-aware 3D room. "
+        "Never claim unsupported actions such as real object interaction, dancing, or a physical hug. "
+        "Return ONLY JSON with keys mood,gaze,gesture,body,move_x,move_z. "
+        "mood: neutral,happy,angry,sad,fear,disgust,love,sleep. gaze: camera or forward. "
+        "gesture: none,handup,index,ok,thumbup,thumbdown,side,shrug,kiss,heart. "
+        "body: idle,walk,sit. Use null for move_x/move_z unless moving. For unrelated chat, choose "
+        "a restrained natural reaction, not a random gesture."
     )
     try:
         client = AsyncOpenAI(
@@ -123,7 +127,7 @@ async def avatar_action(payload: AvatarActionRequest):
         response = await client.chat.completions.create(
             model=os.getenv("RIYA_LLM_MODEL", "sao10k/l3.3-euryale-70b"),
             messages=[{"role": "system", "content": system}, *context],
-            max_tokens=120,
+            max_tokens=180,
         )
         import json
         raw = response.choices[0].message.content or "{}"
