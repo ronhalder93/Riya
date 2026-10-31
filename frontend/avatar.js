@@ -17,6 +17,49 @@ function setState(value) {
   if (stateLabel) stateLabel.textContent = value.toUpperCase();
 }
 
+let pendingChatReaction = null;
+
+// Translate chat intent into actions supported by the current TalkingHead character.
+// This is a lightweight front-end bridge; it does not alter the protected conversation backend.
+function reactToChat(userText, replyText = '') {
+  const text = (String(userText || '') + ' ' + String(replyText || '')).toLowerCase();
+  let reaction = { mood: 'happy', gesture: 'handup', duration: 1.8 };
+
+  if (/pappi|papa|kiss|chumma|chum|muah|😘/.test(text)) {
+    reaction = { mood: 'happy', gesture: '😘', duration: 2.4 };
+  } else if (/hug|jhappi|gale lag|🤗/.test(text)) {
+    reaction = { mood: 'happy', gesture: '🤗', duration: 2.4 };
+  } else if (/thank|shukriya|dhanyavaad|thanks|🙏/.test(text)) {
+    reaction = { mood: 'happy', gesture: 'thumbup', duration: 1.8 };
+  } else if (/love you|i love|pyaar|pyar|❤️|💕/.test(text)) {
+    reaction = { mood: 'happy', gesture: '❤️', duration: 2.2 };
+  } else if (/sorry|udaas|sad|dukhi|😢|😭/.test(text)) {
+    reaction = { mood: 'sad', gesture: '🤗', duration: 2.0 };
+  } else if (/gussa|angry|naraz|😠|😡/.test(text)) {
+    reaction = { mood: 'angry', gesture: 'shrug', duration: 1.6 };
+  } else if (/hello|hi\b|hey|namaste|salaam|good morning|good night/.test(text)) {
+    reaction = { mood: 'happy', gesture: 'handup', duration: 1.8 };
+  } else if (/yes|haan|bilkul|correct|sahi|great|awesome|wah|😍|😊/.test(text)) {
+    reaction = { mood: 'happy', gesture: 'thumbup', duration: 1.8 };
+  } else if (/no\b|nahin|nahi|not sure|pata nahi|maybe|kyun|why\b/.test(text)) {
+    reaction = { mood: 'surprised', gesture: 'shrug', duration: 1.8 };
+  }
+
+  if (!head) {
+    pendingChatReaction = reaction;
+    return;
+  }
+  try {
+    head.setMood?.(reaction.mood);
+    head.playGesture?.(reaction.gesture, reaction.duration);
+    head.lookAtCamera?.(700);
+  } catch (err) {
+    console.warn('RIYA character reaction could not play:', err);
+  }
+}
+
+window.riyaReactToChat = reactToChat;
+
 if (mount) {
   setState('loading');
   try {
@@ -41,6 +84,11 @@ if (mount) {
     window.riyaHead = head;
     if (fallback) fallback.classList.add('hidden');
     setState('ready');
+    if (pendingChatReaction) {
+      const queued = pendingChatReaction;
+      pendingChatReaction = null;
+      reactToChat('', queued.gesture);
+    }
 
     // Audio-driven lip sync is optional: never let an add-on failure hide the avatar.
     try {
