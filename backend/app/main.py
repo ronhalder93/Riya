@@ -70,11 +70,14 @@ async def chat(payload: ChatRequest):
 async def avatar_action(payload: AvatarActionRequest):
     """Interpret conversational intent into safe, supported avatar controls."""
     neutral = AvatarActionResponse()
-    if os.getenv("RIYA_AI_PROVIDER", "openrouter").lower() != "openrouter":
+    provider = os.getenv("RIYA_AI_PROVIDER", "meganova").lower()
+    mega_key = os.getenv("MEGANOVA_API_KEY", "").strip()
+    openrouter_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    api_key = mega_key or openrouter_key
+    if provider not in {"openrouter", "meganova"} or not api_key:
         return neutral
-    api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
-    if not api_key:
-        return neutral
+    base_url = "https://inference.meganova.ai/v1" if mega_key else "https://openrouter.ai/api/v1"
+    default_model = "meganova-ai/manta-flash-1.0" if mega_key else "sao10k/l3.3-euryale-70b"
 
     allowed_moods = {"neutral", "happy", "angry", "sad", "fear", "disgust", "love", "sleep"}
     allowed_gazes = {"camera", "forward"}
@@ -121,12 +124,12 @@ async def avatar_action(payload: AvatarActionRequest):
     try:
         client = AsyncOpenAI(
             api_key=api_key,
-            base_url="https://openrouter.ai/api/v1",
+            base_url=base_url,
             timeout=18.0,
             max_retries=0,
         )
         response = await client.chat.completions.create(
-            model=os.getenv("RIYA_LLM_MODEL", "sao10k/l3.3-euryale-70b"),
+            model=os.getenv("RIYA_LLM_MODEL", default_model),
             messages=[{"role": "system", "content": system}, *context],
             max_tokens=180,
         )
