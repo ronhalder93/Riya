@@ -1,6 +1,6 @@
-fastapi==0.115.12
-uvicorn[standard]==0.34.2
-pydantic==2.11.4
-openai>=2.0.0,<3.0.0
-livekit-api>=1.0.0,<2.0.0
-livekit-agents>=1.0.0,<2.0.0
+fastapi
+uvicorn[standard]
+openai
+livekit
+livekit-agents
+python-dotenv
