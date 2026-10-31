@@ -56,6 +56,10 @@ if (mount) {
         console.warn('RIYA avatar action could not be played:', actionError);
       }
     };
+    if (window.riyaPendingAction) {
+      window.riyaApplyAction(window.riyaPendingAction);
+      delete window.riyaPendingAction;
+    }
     if (fallback) fallback.classList.add('hidden');
     setState('ready');
 
