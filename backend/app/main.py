@@ -1,7 +1,7 @@
 """RIYA API — chat and LiveKit room-token endpoints."""
+import logging
 import os
 import re
-import logging
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from .providers import generate_reply
 
 logger = logging.getLogger(__name__)
-app = FastAPI(title="RIYA API", version="0.2.0")
+app = FastAPI(title="RIYA API", version="0.3.0")
 
 origins = os.getenv("RIYA_ALLOWED_ORIGINS", "http://localhost:5500").split(",")
 app.add_middleware(
@@ -65,16 +65,17 @@ async def livekit_token(payload: LiveKitTokenRequest):
 
     try:
         from livekit import api
+
         token = (
             api.AccessToken(api_key, api_secret)
             .with_identity(identity)
             .with_name(identity)
             .with_ttl(60 * 30)
-            .with_grants(api.VideoGrants(room_join=True, room=room, can_publish=True, can_subscribe=True))
+            .with_grants(
+                api.VideoGrants(room_join=True, room=room, can_publish=True, can_subscribe=True)
+            )
             .with_room_config(
-                api.RoomConfiguration(
-                    agents=[api.RoomAgentDispatch(agent_name="riya-agent")]
-                )
+                api.RoomConfiguration(agents=[api.RoomAgentDispatch(agent_name="riya-agent")])
             )
             .to_jwt()
         )
