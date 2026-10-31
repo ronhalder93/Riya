@@ -96,6 +96,16 @@ async function sendMessage(text) {
     const data = await response.json();
     addMessage(data.reply, 'assistant');
     saveHistory(data.reply, 'assistant');
+    // Ask the AI to interpret the conversational intent for Riya's body language.
+    // This runs independently so it never delays the chat reply.
+    fetch(API_BASE + '/api/avatar-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: clean, reply: data.reply, history }),
+    })
+      .then((actionResponse) => actionResponse.ok ? actionResponse.json() : null)
+      .then((action) => { if (action && window.riyaApplyAction) window.riyaApplyAction(action); })
+      .catch((actionError) => console.warn('RIYA avatar action request failed:', actionError));
     speak(data.reply);
     if (!voiceEnabled) setAvatarState('ready');
     clearTimeout(speechTimer);
