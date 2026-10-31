@@ -67,7 +67,9 @@ if (mount) {
       const gestures = ['none', 'handup', 'index', 'ok', 'thumbup', 'thumbdown', 'side', 'shrug', 'kiss', 'heart'];
       const mood = moods.includes(action.mood) ? action.mood : 'neutral';
       const gesture = gestures.includes(action.gesture) ? action.gesture : 'none';
+      const body = ['idle', 'walk', 'sit'].includes(action.body) ? action.body : 'idle';
       try {
+        if (window.riyaBodyAction) window.riyaBodyAction(body);
         head.setMood(mood);
         if (action.gaze === 'forward') head.lookAhead(900);
         else head.lookAtCamera(900);
