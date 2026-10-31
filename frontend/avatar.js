@@ -88,55 +88,130 @@ Object.assign(btn.style, {
 });
 document.body.appendChild(btn);
 
-function resetBtn() {
+const callStatus = document.createElement('div');
+callStatus.setAttribute('role', 'status');
+callStatus.setAttribute('aria-live', 'polite');
+callStatus.textContent = 'Call ready';
+Object.assign(callStatus.style, {
+  position: 'fixed',
+  right: '16px',
+  bottom: '252px',
+  zIndex: '25',
+  maxWidth: 'min(280px, calc(100vw - 32px))',
+  padding: '8px 12px',
+  borderRadius: '12px',
+  background: 'rgba(21, 24, 33, 0.88)',
+  color: '#fff',
+  fontSize: '12px',
+  lineHeight: '1.4',
+});
+document.body.appendChild(callStatus);
+
+function showCallStatus(value) {
+  callStatus.textContent = value;
+}
+
+function resetBtn(status = 'Call ready') {
   btn.textContent = '📞 Call';
   btn.style.background = '#2b6cb0';
+  btn.disabled = false;
+  showCallStatus(status);
+}
+
+function withTimeout(promise, ms, label) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(label + ' timed out after ' + Math.round(ms / 1000) + ' seconds')), ms);
+    }),
+  ]).finally(() => clearTimeout(timer));
 }
 
 async function startCall() {
   if (room || !head) return;
+  btn.disabled = true;
   btn.textContent = 'Connecting…';
+  showCallStatus('Connecting to LiveKit…');
+
+  let activeRoom = null;
   try {
     if (!Room) {
       ({ Room, RoomEvent, Track } = await import('https://cdn.jsdelivr.net/npm/livekit-client@2/+esm'));
     }
     await head.audioCtx.resume();
-    const res = await fetch(API_BASE + '/api/livekit/token', {
+
+    showCallStatus('Requesting secure call access…');
+    const res = await withTimeout(fetch(API_BASE + '/api/livekit/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ room_name: 'riya-' + Date.now(), participant_name: 'guest' }),
-    });
-    if (!res.ok) throw new Error('token ' + res.status);
+    }), 15000, 'Token request');
+    if (!res.ok) throw new Error('Token request failed (HTTP ' + res.status + ')');
     const { url, token } = await res.json();
+    if (!url || !token) throw new Error('Server returned an incomplete LiveKit token');
 
-    room = new Room({ adaptiveStream: true });
-    room.on(RoomEvent.TrackSubscribed, (track) => {
+    activeRoom = new Room({ adaptiveStream: true });
+    room = activeRoom;
+
+    activeRoom.on(RoomEvent.TrackSubscribed, (track) => {
       if (track.kind !== Track.Kind.Audio) return;
-      const stream = new MediaStream([track.mediaStreamTrack]);
-      const src = head.audioCtx.createMediaStreamSource(stream);
-      if (headaudio) src.connect(headaudio);
-      else src.connect(head.audioCtx.destination);
-      if (headaudio) src.connect(head.audioCtx.destination);
+      try {
+        const stream = new MediaStream([track.mediaStreamTrack]);
+        const src = head.audioCtx.createMediaStreamSource(stream);
+        if (headaudio) {
+          src.connect(headaudio);
+          src.connect(head.audioCtx.destination);
+        } else {
+          src.connect(head.audioCtx.destination);
+        }
+        showCallStatus('Riya audio connected');
+      } catch (audioErr) {
+        console.error('RIYA remote audio setup failed:', audioErr);
+        showCallStatus('Connected, but remote audio setup failed');
+      }
     });
-    room.on(RoomEvent.Disconnected, endCall);
 
-    await room.connect(url, token);
-    await room.localParticipant.setMicrophoneEnabled(true);
+    activeRoom.on(RoomEvent.ParticipantConnected, () => {
+      showCallStatus('Riya joined the call');
+    });
+
+    activeRoom.on(RoomEvent.Disconnected, () => {
+      if (room === activeRoom) room = null;
+      resetBtn('Call disconnected');
+    });
+
+    showCallStatus('Joining LiveKit room…');
+    await withTimeout(activeRoom.connect(url, token), 20000, 'LiveKit room connection');
+    showCallStatus('Room connected. Starting microphone…');
+    await withTimeout(activeRoom.localParticipant.setMicrophoneEnabled(true), 12000, 'Microphone setup');
+
     btn.textContent = '📴 End';
     btn.style.background = '#c53030';
+    btn.disabled = false;
+    showCallStatus('Connected. Waiting for Riya to join…');
   } catch (err) {
     console.error('RIYA call failed:', err);
-    room = null;
-    resetBtn();
+    if (room === activeRoom) room = null;
+    if (activeRoom) {
+      try { await activeRoom.disconnect(); } catch (disconnectErr) {
+        console.warn('RIYA cleanup after call failure:', disconnectErr);
+      }
+    }
+    const message = err?.message || String(err);
+    resetBtn('Call failed: ' + message);
   }
 }
 
 function endCall() {
-  if (room) {
-    room.disconnect();
-    room = null;
+  const activeRoom = room;
+  room = null;
+  if (activeRoom) {
+    try { activeRoom.disconnect(); } catch (err) {
+      console.warn('RIYA disconnect failed:', err);
+    }
   }
-  resetBtn();
+  resetBtn('Call ended');
 }
 
 btn.addEventListener('click', () => (room ? endCall() : startCall()));
