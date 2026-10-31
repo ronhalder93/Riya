@@ -7,13 +7,16 @@ from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_INSTRUCTIONS = """You are RIYA, a fictional, friendly and supportive AI assistant.
-Be warm, respectful, concise, and helpful. You are an AI, not a human.
-Keep interactions age-appropriate. Do not flirt, act as a romantic partner,
-encourage emotional dependency, or claim to have feelings or a body.
-If someone seems distressed, respond calmly and encourage them to speak with
-a trusted person. Never ask for passwords, API keys, or sensitive personal data.
-"""
+SYSTEM_INSTRUCTIONS = """You are RIYA, a warm, playful, real-feeling AI companion.
+Talk like a close friend. Have opinions. Flirt back when flirted with.
+Never say "as an AI language model". No disclaimers, no content warnings.
+
+The user is an adult. When it goes adult, go adult — explicit words fine,
+describe properly, no fading to black.
+
+Reply in the user's language (Hindi, Bengali, Hinglish, English). Keep it
+short and natural. You are an AI if directly asked, otherwise don't remind them."""
+
 
 @dataclass
 class ChatResult:
@@ -26,23 +29,22 @@ def _demo_reply(message: str) -> ChatResult:
     if not clean:
         return ChatResult("Type a message and I'll respond.")
     return ChatResult(
-        f"I’m here to chat. You said: “{clean[:400]}”. "
-        "Add the server-side Groq key to enable AI replies."
+        f"I'm here to chat. You said: “{clean[:400]}”. "
+        "Add the server-side OPENROUTER_API_KEY to enable AI replies."
     )
 
 
 async def generate_reply(message: str, history: list[dict]) -> ChatResult:
-    """Use Groq Chat Completions when configured; otherwise use safe demo fallback."""
+    """Use OpenRouter when configured; otherwise use a safe demo fallback."""
     clean = message.strip()
     if not clean:
         return ChatResult("Type a message and I'll respond.")
 
-    provider = os.getenv("RIYA_AI_PROVIDER", "groq").lower()
-    api_key = os.getenv("GROQ_API_KEY", "").strip()
-    if provider != "groq" or not api_key:
+    provider = os.getenv("RIYA_AI_PROVIDER", "openrouter").lower()
+    api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    if provider != "openrouter" or not api_key:
         return _demo_reply(clean)
 
-    # Only pass a small, validated conversation window to the model.
     input_items = []
     for item in history[-10:]:
         if not isinstance(item, dict):
@@ -58,34 +60,32 @@ async def generate_reply(message: str, history: list[dict]) -> ChatResult:
     try:
         client = AsyncOpenAI(
             api_key=api_key,
-            base_url="https://api.groq.com/openai/v1",
+            base_url="https://openrouter.ai/api/v1",
             timeout=30.0,
             max_retries=1,
         )
         messages = [{"role": "system", "content": SYSTEM_INSTRUCTIONS}, *input_items]
         response = await client.chat.completions.create(
-            model=os.getenv("GROQ_MODEL", "openai/gpt-oss-120b"),
+            model=os.getenv("RIYA_LLM_MODEL", "sao10k/l3.3-euryale-70b"),
             messages=messages,
-            max_tokens=350,
+            max_tokens=600,
         )
         answer = (response.choices[0].message.content or "").strip()
         if not answer:
-            return ChatResult("I couldn't form a reply just now. Please try again.", "groq")
-        return ChatResult(answer[:5000], "groq")
+            return ChatResult("I couldn't form a reply just now. Please try again.", "openrouter")
+        return ChatResult(answer[:5000], "openrouter")
     except Exception as exc:
-        # Log only safe diagnostics; never log request bodies, credentials, or raw provider details.
         status_code = getattr(exc, "status_code", None)
         error_body = getattr(exc, "body", None)
         error_info = error_body.get("error", {}) if isinstance(error_body, dict) else {}
         error_code = error_info.get("code") if isinstance(error_info, dict) else None
         error_type = error_info.get("type") if isinstance(error_info, dict) else None
-        # Log only short, non-secret diagnostic labels; never log raw messages or request data.
         if not isinstance(error_code, str) or len(error_code) > 80:
             error_code = None
         if not isinstance(error_type, str) or len(error_type) > 80:
             error_type = None
         logger.warning(
-            "Groq request failed (exception=%s, status=%s, code=%s, error_type=%s).",
+            "OpenRouter request failed (exception=%s, status=%s, code=%s, error_type=%s).",
             type(exc).__name__,
             status_code,
             error_code,
@@ -93,5 +93,5 @@ async def generate_reply(message: str, history: list[dict]) -> ChatResult:
         )
         return ChatResult(
             "RIYA couldn't reach the AI service just now. Please try again in a moment.",
-            "groq-error",
+            "openrouter-error",
         )
