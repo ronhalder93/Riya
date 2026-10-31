@@ -347,35 +347,6 @@ function endCall() {
 btn.addEventListener('click', () => (room ? endCall() : startCall()));
 
 
-// Lightweight interaction controls and natural idle attention.
-// These use TalkingHead's supported face/gaze/gesture API; they do not fake
-// unsupported full-body walking or sitting animations.
-const motionPanel = document.createElement('div');
-motionPanel.className = 'riya-motion-controls';
-motionPanel.setAttribute('aria-label', 'Riya expressions');
-[
-  ['👋', 'Wave', { mood: 'happy', gesture: 'handup', gaze: 'camera' }],
-  ['😊', 'Smile', { mood: 'happy', gesture: 'none', gaze: 'camera' }],
-  ['💗', 'Heart', { mood: 'love', gesture: 'heart', gaze: 'camera' }],
-  ['👂', 'Listen', { mood: 'neutral', gesture: 'none', gaze: 'camera' }],
-  ['🚶', 'Walk', { body: 'walk' }],
-  ['🪑', 'Sit', { body: 'sit' }],
-  ['🧍', 'Stand', { body: 'idle' }],
-].forEach(([emoji, label, action]) => {
-  const control = document.createElement('button');
-  control.type = 'button';
-  control.className = 'riya-motion-button';
-  control.textContent = emoji + ' ' + label;
-  control.addEventListener('click', () => {
-    if (action.body) window.riyaBodyAction?.(action.body);
-    else if (window.riyaApplyAction) window.riyaApplyAction(action);
-    else window.riyaPendingAction = action;
-    showCallStatus(action.body ? 'Body: ' + label : 'Expression: ' + label);
-  });
-  motionPanel.appendChild(control);
-});
-document.body.appendChild(motionPanel);
-
 // Restore camera eye contact after a short idle interval. Pause while hidden
 // and respect reduced-motion preferences.
 let idleAttentionTimer = null;
