@@ -30,30 +30,40 @@ const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreferen
 scene.add(new THREE.HemisphereLight(0xcbdcff,0x30202b,1.8));const light=new THREE.DirectionalLight(0xffdfd0,2.2);light.position.set(-3,4,5);scene.add(light);
 const avatar=new THREE.Group();scene.add(avatar);
 const mat=(color,roughness=.72)=>new THREE.MeshStandardMaterial({color,roughness});
+const skinDetail=new THREE.MeshPhysicalMaterial({color:0xf1c6a8,roughness:.58,clearcoat:.12,clearcoatRoughness:.7});
+const eyeWhite=new THREE.MeshStandardMaterial({color:0xfffaf5,roughness:.28});
+const irisDetail=new THREE.MeshPhysicalMaterial({color:0x49302b,roughness:.22,clearcoat:.7});
+const lipDetail=new THREE.MeshPhysicalMaterial({color:0x99505e,roughness:.38,clearcoat:.18});
 const skin=mat(0xf1c6a8),hair=mat(0x211a2b),hairLight=mat(0x38263a),shirt=mat(0x9b5b86),white=mat(0xfff8f2),iris=mat(0x49302b),dark=mat(0x241a20),lip=mat(0xb85d70);
-function ball(parent,x,y,z,sx,sy,sz,material){const m=new THREE.Mesh(new THREE.SphereGeometry(1,32,24),material);m.position.set(x,y,z);m.scale.set(sx,sy,sz);parent.add(m);return m}
+function ball(parent,x,y,z,sx,sy,sz,material){const m=new THREE.Mesh(new THREE.SphereGeometry(1,64,48),material);m.position.set(x,y,z);m.scale.set(sx,sy,sz);parent.add(m);return m}
 const body=new THREE.Group();avatar.add(body);
 ball(body,0,-1.72,-.05,1.02,.82,.48,shirt);
 ball(body,0,-.96,0,.28,.55,.28,skin);
 const head=new THREE.Group();head.position.set(0,.62,0);avatar.add(head);
-ball(head,0,0,0,.82,1.02,.68,skin);
+ball(head,0,0,0,.76,.98,.66,skinDetail);
 ball(head,0,.72,-.02,.84,.53,.7,hair);
 ball(head,-.72,.12,-.02,.19,.72,.55,hair);
 ball(head,.72,.12,-.02,.19,.72,.55,hair);
 const fringe=ball(head,0,.57,.47,.72,.3,.22,hairLight);fringe.rotation.z=-.08;
-for(const x of [-.31,.31]){
- ball(head,x,.18,.59,.205,.14,.07,white);
- ball(head,x,.18,.655,.085,.095,.045,iris);
- ball(head,x,.18,.69,.04,.055,.025,dark);
- const brow=ball(head,x,.43,.59,.23,.045,.055,hair);brow.rotation.z=x<0?-.12:.12;
+for(const x of [-.30,.30]){
+ const socket=ball(head,x,.18,.575,.225,.155,.095,mat(0xd8a995));
+ const eye=ball(head,x,.19,.635,.185,.105,.075,eyeWhite);
+ const irisMesh=ball(head,x,.185,.697,.073,.083,.028,irisDetail);
+ ball(head,x,.185,.718,.033,.048,.015,dark);
+ ball(head,x-.022,.218,.735,.018,.018,.009,white);
+ const upperLid=ball(head,x,.285,.64,.19,.038,.07,skinDetail);upperLid.rotation.z=x<0?.04:-.04;
+ const brow=ball(head,x,.405,.59,.22,.035,.05,hair);brow.rotation.z=x<0?-.10:.10;
 }
-ball(head,0,-.02,.68,.09,.2,.09,mat(0xd99e84));
-const mouth=ball(head,0,-.43,.625,.22,.045,.055,dark);
-const lowerLip=ball(head,0,-.48,.63,.16,.025,.035,lip);
+// Subtle nose bridge and tip give the face more natural depth.
+const noseBridge=ball(head,0,.015,.655,.055,.17,.075,skinDetail);noseBridge.rotation.x=-.12;
+ball(head,0,-.105,.705,.085,.065,.075,skinDetail);
+ball(head,-.052,-.13,.69,.026,.018,.018,mat(0xb67f70));ball(head,.052,-.13,.69,.026,.018,.018,mat(0xb67f70));
+const mouth=ball(head,0,-.405,.64,.17,.025,.035,lipDetail);
+const lowerLip=ball(head,0,-.445,.645,.13,.022,.03,lipDetail);
 ball(head,-.84,-.1,.02,.13,.2,.12,skin);ball(head,.84,-.1,.02,.13,.2,.12,skin);
 const hairBack=ball(head,0,-.2,-.39,.84,.9,.3,hair);hairBack.position.z=-.39;
-const eyes=[head.children[5],head.children[9]];
+const eyes=head.children.filter((node)=>node.geometry?.type==='SphereGeometry' && node.position.y===.19 && node.position.z===.635);
 
-let frame=0;const clock=new THREE.Clock();let talkPulse=0;function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);frame+=dt;const talking=avatarState==='talking';const target=talking?1:0;talkPulse+=(target-talkPulse)*Math.min(1,dt*(talking?10:3));const beat=talking?Math.abs(Math.sin(frame*11)):0;mouth.scale.y=.045+talkPulse*(.13+beat*.18);lowerLip.position.y=-.48-talkPulse*(.025+beat*.025);head.rotation.y=Math.sin(frame*.7)*.045;head.rotation.z=Math.sin(frame*1.1)*.012;head.position.y=.62+Math.sin(frame*1.8)*.025;avatar.position.y=-.12+Math.sin(frame*1.8)*.035;avatar.rotation.y=Math.sin(frame*.35)*.025;const blink=Math.pow(Math.max(0,Math.sin(frame*.7-1.1)),36);for(const eye of eyes)eye.scale.y=.14*(1-blink*.88);renderer.render(scene,camera);const fallback=document.querySelector('#avatarFallback');if(fallback)fallback.classList.add('hidden')}animate();
+let frame=0;const clock=new THREE.Clock();let talkPulse=0;function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);frame+=dt;const talking=avatarState==='talking';const target=talking?1:0;talkPulse+=(target-talkPulse)*Math.min(1,dt*(talking?10:3));const beat=talking?Math.abs(Math.sin(frame*11)):0;mouth.scale.y=.045+talkPulse*(.13+beat*.18);lowerLip.position.y=-.48-talkPulse*(.025+beat*.025);head.rotation.y=Math.sin(frame*.7)*.045;head.rotation.z=Math.sin(frame*1.1)*.012;head.position.y=.62+Math.sin(frame*1.8)*.025;avatar.position.y=-.12+Math.sin(frame*1.8)*.035;avatar.rotation.y=Math.sin(frame*.35)*.025;const blink=Math.pow(Math.max(0,Math.sin(frame*.7-1.1)),36);for(const eye of eyes)eye.scale.y=.105*(1-blink*.88);renderer.render(scene,camera);const fallback=document.querySelector('#avatarFallback');if(fallback)fallback.classList.add('hidden')}animate();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight)});
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
