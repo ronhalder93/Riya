@@ -25,7 +25,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&cameraStre
 loadHistory();
 // Full-screen RIYA portrait fallback when camera is off.
 const mount=document.querySelector('#scene'),scene=new THREE.Scene();scene.background=new THREE.Color(0x111827);
-const camera=new THREE.PerspectiveCamera(30,innerWidth/innerHeight,.1,100);camera.position.set(0,.05,7.8);
+const camera=new THREE.PerspectiveCamera(30,innerWidth/innerHeight,.1,100);camera.position.set(0,-.72,9.2);
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'low-power'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;mount.appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xcbdcff,0x30202b,1.8));const light=new THREE.DirectionalLight(0xffdfd0,2.2);light.position.set(-3,4,5);scene.add(light);
 const avatar=new THREE.Group();scene.add(avatar);
@@ -38,6 +38,23 @@ const skin=mat(0xf1c6a8),hair=mat(0x211a2b),hairLight=mat(0x38263a),shirt=mat(0x
 function ball(parent,x,y,z,sx,sy,sz,material){const m=new THREE.Mesh(new THREE.SphereGeometry(1,64,48),material);m.position.set(x,y,z);m.scale.set(sx,sy,sz);parent.add(m);return m}
 const body=new THREE.Group();avatar.add(body);
 ball(body,0,-1.72,-.05,1.02,.82,.48,shirt);
+ // Full-body casual RIYA character: modest outfit, articulated-looking limbs and shoes.
+ const pants=mat(0x3b405b),shoe=mat(0xf5e9e7),sleeve=mat(0x875078);
+ function limb(parent,a,b,r1,r2,material){const start=new THREE.Vector3(...a),end=new THREE.Vector3(...b),delta=end.clone().sub(start);const mesh=new THREE.Mesh(new THREE.CylinderGeometry(r2,r1,delta.length(),24),material);mesh.position.copy(start).add(end).multiplyScalar(.5);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize());parent.add(mesh);ball(parent,...a,r1,r1,r1,material);ball(parent,...b,r2,r2,r2,material);return mesh}
+ // Long trousers and legs
+ ball(body,-.38,-2.55,-.02,.38,.95,.36,pants);ball(body,.38,-2.55,-.02,.38,.95,.36,pants);
+ limb(body,[-.38,-2.95,0],[-.40,-3.55,.02],.23,.19,pants);
+ limb(body,[.38,-2.95,0],[.40,-3.55,.02],.23,.19,pants);
+ ball(body,-.41,-3.66,.13,.29,.13,.43,shoe);ball(body,.41,-3.66,.13,.29,.13,.43,shoe);
+ // Sleeves and arms resting naturally beside the torso
+ limb(body,[-.82,-1.35,0],[-1.02,-2.05,.05],.23,.17,sleeve);
+ limb(body,[.82,-1.35,0],[1.02,-2.05,.05],.23,.17,sleeve);
+ limb(body,[-1.02,-2.05,.05],[-.94,-2.45,.16],.17,.14,skinDetail);
+ limb(body,[1.02,-2.05,.05],[.94,-2.45,.16],.17,.14,skinDetail);
+ // Simple collar detail
+ const collar=ball(body,0,-1.28,.43,.35,.18,.08,white);
+ collar.rotation.z=Math.PI;
+
 ball(body,0,-.96,0,.28,.55,.28,skin);
 const head=new THREE.Group();head.position.set(0,.62,0);avatar.add(head);
 ball(head,0,0,0,.76,.98,.66,skinDetail);
