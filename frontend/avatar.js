@@ -17,6 +17,28 @@ function setState(value) {
   if (stateLabel) stateLabel.textContent = value.toUpperCase();
 }
 
+// Use a locally hosted, generated bedroom image as the scene environment.
+// The base64 asset keeps the room available offline with the app shell.
+if (mount) {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'room-backdrop';
+  backdrop.setAttribute('aria-hidden', 'true');
+  mount.appendChild(backdrop);
+  fetch('./room-image.b64')
+    .then((response) => {
+      if (!response.ok) throw new Error('Room image unavailable');
+      return response.text();
+    })
+    .then((encoded) => {
+      const clean = encoded.trim();
+      if (clean.startsWith('/9j/')) {
+        backdrop.style.backgroundImage = 'url("data:image/jpeg;base64,' + clean + '")';
+        backdrop.classList.add('loaded');
+      }
+    })
+    .catch((error) => console.warn('RIYA room backdrop unavailable:', error));
+}
+
 if (mount) {
   setState('loading');
   try {
