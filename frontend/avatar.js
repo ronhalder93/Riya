@@ -1,5 +1,3 @@
-import { TalkingHead } from 'talkinghead';
-
 const API_BASE = 'https://riya-api-plnn.onrender.com';
 const WORKLET = 'https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/modules/headworklet.mjs';
 const MODEL = 'https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/model-en-mixed.bin';
@@ -20,7 +18,9 @@ function setState(value) {
 }
 
 if (mount) {
+  setState('loading');
   try {
+    const { TalkingHead } = await import('talkinghead');
     head = new TalkingHead(mount, {
       lipsyncModules: ['en'],
       cameraView: 'upper',
