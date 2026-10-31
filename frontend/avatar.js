@@ -220,6 +220,15 @@ if (mount) {
       apply('RightArm', 0.28 * sit + 0.26 * swing * walk);
       apply('LeftForeArm', -0.18 * sit);
       apply('RightForeArm', -0.18 * sit);
+
+      // Gentle breathing keeps the avatar from looking frozen between gestures.
+      // Apply it on top of the procedural pose without requiring another asset.
+      const breath = Math.sin(bodyMotionPhase * 0.32) * 0.012;
+      const torso = motionBones.get('Spine2');
+      if (torso) torso.bone.rotation.x = torso.rotation.x + breath;
+      const upperTorso = motionBones.get('Spine1');
+      if (upperTorso) upperTorso.bone.rotation.z =
+        upperTorso.rotation.z + Math.sin(bodyMotionPhase * 0.16) * 0.004;
     }
 
     const audioUpdate = head.opt.update;
