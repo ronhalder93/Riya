@@ -98,12 +98,13 @@ async def avatar_action(payload: AvatarActionRequest):
         "RIYA's reply, and recent dialogue as one natural conversation. Understand Hindi, Hinglish, "
         "Bengali, and English, including indirect requests, teasing, affection, jokes, emotional cues, "
         "and context. Do NOT wait for explicit action commands or match isolated keywords. "
-        "Choose a subtle, relevant facial mood, gaze, and supported gesture whenever the conversation "
-        "naturally calls for one: smile/laugh for genuine humour or joy, warm/loving expression for "
-        "welcomed affection or flirting, reassuring/sad expression for vulnerability, curious gaze for "
-        "a question, thoughtful/shrug for uncertainty, greeting gesture for hello/goodbye, and kiss/heart "
-        "only when the exchange clearly welcomes that affection. Do not overreact: ordinary factual chat "
-        "usually stays neutral, and never force flirtation or intimacy. Respect boundaries and user pace. "
+        "Act as an autonomous director, not a keyword-to-animation lookup. Infer the emotional subtext "
+        "from the whole recent exchange, then choose one coherent combination of mood, gaze, gesture, "
+        "and body state. Let reactions emerge naturally from context: humour can invite a smile, warmth "
+        "can invite affectionate expression, vulnerability can invite reassurance, a question can invite "
+        "curiosity, and greetings can invite a greeting gesture. Use kiss/heart only when the exchange "
+        "clearly welcomes affection. Vary choices naturally; do not repeat a gesture on every turn, stack "
+        "unrelated actions, or force intimacy into factual chat. Respect boundaries and user pace. "
         "If the user asks RIYA to sit, stand, walk, or move, infer that from natural phrasing and use the "
         "supported body state. If the user expresses a clear destination/direction, choose a small safe "
         "room target: move_x from -0.75 (left) to 0.75 (right), move_z from -0.35 (back) to 0.35 (forward); "
@@ -147,8 +148,10 @@ async def avatar_action(payload: AvatarActionRequest):
             gaze=gaze if gaze in allowed_gazes else "camera",
             gesture=gesture if gesture in allowed_gestures else "none",
             body=body if body in allowed_body else "idle",
-            move_x=data.get("move_x") if isinstance(data.get("move_x"), (int, float)) else None,
-            move_z=data.get("move_z") if isinstance(data.get("move_z"), (int, float)) else None,
+            move_x=max(-0.75, min(0.75, float(data["move_x"])))
+                if isinstance(data.get("move_x"), (int, float)) else None,
+            move_z=max(-0.35, min(0.35, float(data["move_z"])))
+                if isinstance(data.get("move_z"), (int, float)) else None,
         )
     except Exception as exc:
         logger.info("Avatar action planning unavailable (%s).", type(exc).__name__)
