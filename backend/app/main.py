@@ -116,10 +116,16 @@ async def avatar_action(payload: AvatarActionRequest):
             model=os.getenv("RIYA_LLM_MODEL", "sao10k/l3.3-euryale-70b"),
             messages=[{"role": "system", "content": system}, *context],
             max_tokens=120,
-            response_format={"type": "json_object"},
         )
         import json
-        data = json.loads(response.choices[0].message.content or "{}")
+        raw = response.choices[0].message.content or "{}"
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            start, end = raw.find("{"), raw.rfind("}")
+            if start < 0 or end <= start:
+                raise
+            data = json.loads(raw[start:end + 1])
         mood = data.get("mood", "neutral")
         gaze = data.get("gaze", "camera")
         gesture = data.get("gesture", "none")
