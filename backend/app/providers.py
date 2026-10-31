@@ -96,7 +96,7 @@ async def generate_reply(message: str, history: list[dict]) -> ChatResult:
             api_key=api_key,
             base_url="https://openrouter.ai/api/v1",
             timeout=30.0,
-            max_retries=1,
+            max_retries=0,
         )
         messages = [{"role": "system", "content": SYSTEM_INSTRUCTIONS}, *input_items]
         response = await client.chat.completions.create(
