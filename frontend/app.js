@@ -104,7 +104,7 @@ async function sendMessage(text) {
       body: JSON.stringify({ message: clean, reply: data.reply, history }),
     })
       .then((actionResponse) => actionResponse.ok ? actionResponse.json() : null)
-      .then((action) => { if (action) { if (window.riyaApplyAction) window.riyaApplyAction(action); else window.riyaPendingAction = action; } })
+      .then((action) => { if (action) { if (window.riyaApplyAction) window.riyaApplyAction(action); else window.riyaPendingAction = action; if (Number.isFinite(action.move_x) && Number.isFinite(action.move_z)) window.riyaMoveTo?.(action.move_x, action.move_z); } })
       .catch((actionError) => console.warn('RIYA avatar action request failed:', actionError));
     speak(data.reply);
     if (!voiceEnabled) setAvatarState('ready');
