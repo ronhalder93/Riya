@@ -1,38 +1,60 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#f7f8fc"><meta name="description" content="RIYA — a friendly virtual companion">
-  <link rel="manifest" href="./manifest.webmanifest"><link rel="stylesheet" href="./styles.css?v=9"><title>RIYA</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RIYA</title>
+<meta name="theme-color" content="#151821">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="stylesheet" href="./styles.css">
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.186/build/three.module.js/+esm",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186/examples/jsm/",
+    "talkinghead": "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@1.8/modules/talkinghead.mjs"
+} }
+</script>
 </head>
 <body>
-<main class="app-shell">
-  <div id="scene" class="scene" aria-label="RIYA avatar background"><div id="avatarFallback" class="avatar-fallback" aria-label="RIYA animated character"><div class="fallback-hair"></div><div class="fallback-face"><i class="brow left"></i><i class="brow right"></i><i class="eye left"></i><i class="eye right"></i><i class="nose"></i><i class="mouth"></i></div><div class="fallback-neck"></div><div class="fallback-body"></div></div></div>
-  <video id="cameraPreview" class="camera-preview" autoplay muted playsinline aria-label="Your camera preview"></video>
-  <div class="camera-shade"></div>
-  <div class="topbar">
-    <div class="brand"><span class="brand-mark">♡</span><span>RIYA</span><small id="avatarState">READY</small></div>
-    <div class="top-controls">
-      <label class="quality-label" for="qualitySelect">CAM</label>
-      <select id="qualitySelect" aria-label="Camera quality"><option value="144">144p</option><option value="240">240p</option><option value="360" selected>360p</option><option value="480">480p</option><option value="720">720p</option></select>
-      <button id="voiceToggle" class="hud-btn" type="button" aria-pressed="true">🔊 Voice ON</button>
-      <button id="cameraToggle" class="hud-btn camera-on" type="button">Start camera</button>
-      <button id="cameraStop" class="hud-btn stop-btn" type="button" disabled>Stop</button>
-    </div>
+
+<div id="scene"></div>
+<div id="avatarFallback" class="hidden">Avatar could not load.</div>
+
+<header class="hud">
+  <span class="brand">RIYA</span>
+  <span id="avatarState">IDLE</span>
+  <button id="voiceToggle" aria-pressed="true">🔊 Voice ON</button>
+</header>
+
+<main id="messages"></main>
+
+<footer class="dock">
+  <div id="attachmentList"></div>
+
+  <div class="camrow">
+    <button id="cameraToggle" type="button">Start camera</button>
+    <select id="qualitySelect" aria-label="Camera quality">
+      <option value="144">144p</option>
+      <option value="240" selected>240p</option>
+      <option value="360">360p</option>
+      <option value="480">480p</option>
+      <option value="720">720p</option>
+    </select>
+    <button id="cameraStop" type="button" disabled>Stop</button>
+    <video id="cameraPreview" playsinline muted></video>
   </div>
-  <div id="cameraNotice" class="camera-notice">Camera is off · Tap “Start camera” to enable a visible local preview</div>
-  <section class="chat" aria-label="Conversation">
-    <div id="messages" class="messages" aria-live="polite"></div>
-    <form id="chatForm" class="composer">
-      <input id="fileInput" type="file" hidden multiple>
-      <button id="attachBtn" class="tool-btn" type="button" aria-label="Attach files">＋</button>
-      <input id="messageInput" autocomplete="off" maxlength="2000" placeholder="Message RIYA…" aria-label="Message">
-      <button id="micBtn" class="tool-btn mic-btn" type="button" aria-label="Voice input">🎙</button>
-      <button class="send-btn" type="submit" aria-label="Send message">↑</button>
-    </form>
-    <div id="attachmentList" class="attachment-list" aria-live="polite"></div>
-  </section>
-</main>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
-<script type="module" src="./app.js?v=9"></script>
-</body></html>
+  <p id="cameraNotice">Camera is off</p>
+
+  <form id="chatForm">
+    <input id="fileInput" type="file" multiple hidden>
+    <button id="attachBtn" type="button" aria-label="Attach">📎</button>
+    <button id="micBtn" type="button" aria-label="Microphone">🎙</button>
+    <input id="messageInput" type="text" placeholder="Type a message…" autocomplete="off">
+    <button type="submit">Send</button>
+  </form>
+</footer>
+
+<script type="module" src="./app.js"></script>
+<script type="module" src="./avatar.js"></script>
+</body>
+</html>
