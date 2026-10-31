@@ -131,6 +131,27 @@ if (mount) {
     let bodyMotion = 'idle';
     let bodyMotionBlend = 0;
     let bodyMotionPhase = 0;
+    const avatarRoot = head.armature;
+    const roomPosition = { x: avatarRoot.position.x, z: avatarRoot.position.z };
+    const roomTarget = { x: roomPosition.x, z: roomPosition.z };
+    let roomMoving = false;
+
+    // Move the actual 3D avatar root across the room plane. The room is currently
+    // a 2D photographic backdrop, so keep movement within a conservative visible area.
+    window.riyaMoveTo = (x, z) => {
+      if (!avatarRoot?.position || !Number.isFinite(x) || !Number.isFinite(z)) return false;
+      roomTarget.x = Math.max(-0.75, Math.min(0.75, x));
+      roomTarget.z = Math.max(-0.35, Math.min(0.35, z));
+      roomMoving = Math.hypot(roomTarget.x - avatarRoot.position.x, roomTarget.z - avatarRoot.position.z) > 0.025;
+      bodyMotion = roomMoving ? 'walk' : 'idle';
+      return true;
+    };
+    window.riyaStopMoving = () => {
+      roomTarget.x = avatarRoot.position.x;
+      roomTarget.z = avatarRoot.position.z;
+      roomMoving = false;
+      bodyMotion = 'idle';
+    };
 
     window.riyaBodyAction = (action = 'idle') => {
       if (!hasLegRig) {
@@ -139,7 +160,7 @@ if (mount) {
       }
       if (['idle', 'walk', 'sit'].includes(action)) {
         bodyMotion = action;
-        showCallStatus(action === 'walk' ? 'Walking in place' : action === 'sit' ? 'Sitting pose' : 'Standing');
+        showCallStatus(action === 'walk' ? 'Walking' : action === 'sit' ? 'Sitting pose' : 'Standing');
         return true;
       }
       return false;
@@ -152,6 +173,22 @@ if (mount) {
       const target = bodyMotion === 'idle' ? 0 : 1;
       bodyMotionBlend += (target - bodyMotionBlend) * Math.min(1, step * 3.2);
       const walk = bodyMotion === 'walk' ? bodyMotionBlend : 0;
+      if (roomMoving) {
+        const dx = roomTarget.x - avatarRoot.position.x;
+        const dz = roomTarget.z - avatarRoot.position.z;
+        const distance = Math.hypot(dx, dz);
+        const travel = Math.min(distance, step * 0.42);
+        if (distance > 0.015) {
+          avatarRoot.position.x += (dx / distance) * travel;
+          avatarRoot.position.z += (dz / distance) * travel;
+          avatarRoot.rotation.y = Math.atan2(dx, dz);
+        } else {
+          avatarRoot.position.x = roomTarget.x;
+          avatarRoot.position.z = roomTarget.z;
+          roomMoving = false;
+          bodyMotion = 'idle';
+        }
+      }
       const sit = bodyMotion === 'sit' ? bodyMotionBlend : 0;
       const swing = Math.sin(bodyMotionPhase);
       const liftL = Math.max(0, swing);
