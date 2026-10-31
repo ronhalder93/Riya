@@ -23,7 +23,7 @@ if (mount) {
     const { TalkingHead } = await import('talkinghead');
     head = new TalkingHead(mount, {
       lipsyncModules: ['en'],
-      cameraView: 'upper',
+      cameraView: 'full',
       modelFPS: 30,
       modelPixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
       avatarMood: 'neutral',
@@ -39,6 +39,23 @@ if (mount) {
     });
 
     window.riyaHead = head;
+    window.riyaApplyAction = (action = {}) => {
+      if (!head) return;
+      const moods = ['neutral', 'happy', 'angry', 'sad', 'fear', 'disgust', 'love', 'sleep'];
+      const gestures = ['none', 'handup', 'index', 'ok', 'thumbup', 'thumbdown', 'side', 'shrug', 'kiss', 'heart'];
+      const mood = moods.includes(action.mood) ? action.mood : 'neutral';
+      const gesture = gestures.includes(action.gesture) ? action.gesture : 'none';
+      try {
+        head.setMood(mood);
+        if (action.gaze === 'forward') head.lookAhead(900);
+        else head.lookAtCamera(900);
+        if (gesture === 'kiss') head.playGesture('😘', 2.5, false, 350);
+        else if (gesture === 'heart') head.playGesture('😍', 2.5, false, 350);
+        else if (gesture !== 'none') head.playGesture(gesture, 2.5, false, 350);
+      } catch (actionError) {
+        console.warn('RIYA avatar action could not be played:', actionError);
+      }
+    };
     if (fallback) fallback.classList.add('hidden');
     setState('ready');
 
