@@ -1,6 +1,4 @@
 import { TalkingHead } from 'talkinghead';
-import { HeadAudioNode } from 'https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/modules/headaudio.mjs';
-import { Room, RoomEvent, Track } from 'https://cdn.jsdelivr.net/npm/livekit-client@2/+esm';
 
 const API_BASE = 'https://riya-api-plnn.onrender.com';
 const WORKLET = 'https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/modules/headworklet.mjs';
@@ -9,49 +7,72 @@ const AVATAR = 'https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@1.8/avatars/
 
 const mount = document.getElementById('scene');
 const fallback = document.getElementById('avatarFallback');
+const stateLabel = document.getElementById('avatarState');
 let room = null;
 let headaudio = null;
 let head = null;
+let Room = null;
+let RoomEvent = null;
+let Track = null;
 
-try {
-  head = new TalkingHead(mount, {
-    lipsyncModules: ['en'],
-    cameraView: 'upper',
-    cameraDistance: 0.35,
-    modelFPS: 30,
-    modelPixelRatio: Math.min(devicePixelRatio, 1.5),
-    avatarMood: 'neutral',
-    avatarIdleEyeContact: 0.4,
-    avatarSpeakingEyeContact: 0.8,
-  });
+function setState(value) {
+  if (stateLabel) stateLabel.textContent = value.toUpperCase();
+}
 
-  await head.showAvatar({
-    url: AVATAR,
-    body: 'F',
-    avatarMood: 'neutral',
-    lipsyncLang: 'en',
-  });
+if (mount) {
+  try {
+    head = new TalkingHead(mount, {
+      lipsyncModules: ['en'],
+      cameraView: 'upper',
+      modelFPS: 30,
+      modelPixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
+      avatarMood: 'neutral',
+      avatarIdleEyeContact: 0.4,
+      avatarSpeakingEyeContact: 0.8,
+    });
 
-  await head.audioCtx.audioWorklet.addModule(WORKLET);
-  headaudio = new HeadAudioNode(head.audioCtx, {
-    processorOptions: {},
-    parameterData: { vadGateActiveDb: -40, vadGateInactiveDb: -60, speakerMeanHz: 220 },
-  });
-  await headaudio.loadModel(MODEL);
+    await head.showAvatar({
+      url: AVATAR,
+      body: 'F',
+      avatarMood: 'neutral',
+      lipsyncLang: 'en',
+    });
 
-  headaudio.onvalue = (key, value) => {
-    if (head.mtAvatar[key]) {
-      Object.assign(head.mtAvatar[key], { newvalue: value, needsUpdate: true });
+    window.riyaHead = head;
+    if (fallback) fallback.classList.add('hidden');
+    setState('ready');
+
+    // Audio-driven lip sync is optional: never let an add-on failure hide the avatar.
+    try {
+      const { HeadAudioNode } = await import('https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/modules/headaudio.mjs');
+      await head.audioCtx.audioWorklet.addModule(WORKLET);
+      headaudio = new HeadAudioNode(head.audioCtx, {
+        processorOptions: {},
+        parameterData: { vadGateActiveDb: -40, vadGateInactiveDb: -60, speakerMeanHz: 220 },
+      });
+      await headaudio.loadModel(MODEL);
+      headaudio.onvalue = (key, value) => {
+        if (head?.mtAvatar?.[key]) {
+          Object.assign(head.mtAvatar[key], { newvalue: value, needsUpdate: true });
+        }
+      };
+      head.opt.update = headaudio.update.bind(headaudio);
+      headaudio.onstarted = () => head.lookAtCamera(400);
+    } catch (audioError) {
+      console.warn('RIYA lip-sync add-on unavailable; avatar remains active:', audioError);
     }
-  };
-  head.opt.update = headaudio.update.bind(headaudio);
-  headaudio.onstarted = () => head.lookAtCamera(400);
-} catch (err) {
-  console.error('Avatar init failed:', err);
-  if (fallback) fallback.classList.remove('hidden');
+  } catch (err) {
+    console.error('RIYA avatar failed to initialize:', err);
+    setState('avatar error');
+    if (fallback) {
+      fallback.textContent = 'Avatar could not load. Please refresh and try again.';
+      fallback.classList.remove('hidden');
+    }
+  }
 }
 
 const btn = document.createElement('button');
+btn.type = 'button';
 btn.textContent = '📞 Call';
 Object.assign(btn.style, {
   position: 'fixed',
@@ -76,6 +97,9 @@ async function startCall() {
   if (room || !head) return;
   btn.textContent = 'Connecting…';
   try {
+    if (!Room) {
+      ({ Room, RoomEvent, Track } = await import('https://cdn.jsdelivr.net/npm/livekit-client@2/+esm'));
+    }
     await head.audioCtx.resume();
     const res = await fetch(API_BASE + '/api/livekit/token', {
       method: 'POST',
@@ -90,8 +114,9 @@ async function startCall() {
       if (track.kind !== Track.Kind.Audio) return;
       const stream = new MediaStream([track.mediaStreamTrack]);
       const src = head.audioCtx.createMediaStreamSource(stream);
-      src.connect(headaudio);
-      src.connect(head.audioCtx.destination);
+      if (headaudio) src.connect(headaudio);
+      else src.connect(head.audioCtx.destination);
+      if (headaudio) src.connect(head.audioCtx.destination);
     });
     room.on(RoomEvent.Disconnected, endCall);
 
@@ -100,7 +125,7 @@ async function startCall() {
     btn.textContent = '📴 End';
     btn.style.background = '#c53030';
   } catch (err) {
-    console.error('Call failed:', err);
+    console.error('RIYA call failed:', err);
     room = null;
     resetBtn();
   }
