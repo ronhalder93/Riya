@@ -208,3 +208,34 @@ html, body {
 @media (max-width: 640px) {
   #scene .room-backdrop { background-position: 58% center; }
 }
+
+
+/* Compact expression controls: keep the character visible while offering
+   supported gestures without covering the chat composer. */
+.riya-motion-controls {
+  position: fixed;
+  right: 14px;
+  bottom: 202px;
+  z-index: 24;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: min(290px, calc(100vw - 28px));
+}
+.riya-motion-button {
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: #fff;
+  background: rgba(20,24,33,.72);
+  backdrop-filter: blur(10px);
+  font: 600 11px/1.2 system-ui, sans-serif;
+  cursor: pointer;
+}
+.riya-motion-button:active { transform: scale(.97); }
+.riya-motion-button:focus-visible { outline: 2px solid #8fc5ff; outline-offset: 2px; }
+@media (max-width: 640px) {
+  .riya-motion-controls { right: 10px; bottom: 205px; max-width: 230px; }
+  .riya-motion-button { padding: 7px 9px; }
+}
