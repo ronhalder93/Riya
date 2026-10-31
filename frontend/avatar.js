@@ -356,15 +356,19 @@ motionPanel.setAttribute('aria-label', 'Riya expressions');
   ['😊', 'Smile', { mood: 'happy', gesture: 'none', gaze: 'camera' }],
   ['💗', 'Heart', { mood: 'love', gesture: 'heart', gaze: 'camera' }],
   ['👂', 'Listen', { mood: 'neutral', gesture: 'none', gaze: 'camera' }],
+  ['🚶', 'Walk', { body: 'walk' }],
+  ['🪑', 'Sit', { body: 'sit' }],
+  ['🧍', 'Stand', { body: 'idle' }],
 ].forEach(([emoji, label, action]) => {
   const control = document.createElement('button');
   control.type = 'button';
   control.className = 'riya-motion-button';
   control.textContent = emoji + ' ' + label;
   control.addEventListener('click', () => {
-    if (window.riyaApplyAction) window.riyaApplyAction(action);
+    if (action.body) window.riyaBodyAction?.(action.body);
+    else if (window.riyaApplyAction) window.riyaApplyAction(action);
     else window.riyaPendingAction = action;
-    showCallStatus('Expression: ' + label);
+    showCallStatus(action.body ? 'Body: ' + label : 'Expression: ' + label);
   });
   motionPanel.appendChild(control);
 });
