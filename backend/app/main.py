@@ -2,6 +2,7 @@
 import logging
 import os
 import re
+from datetime import timedelta
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -70,7 +71,7 @@ async def livekit_token(payload: LiveKitTokenRequest):
             api.AccessToken(api_key, api_secret)
             .with_identity(identity)
             .with_name(identity)
-            .with_ttl(60 * 30)
+            .with_ttl(timedelta(seconds=60 * 30))
             .with_grants(
                 api.VideoGrants(room_join=True, room=room, can_publish=True, can_subscribe=True)
             )
