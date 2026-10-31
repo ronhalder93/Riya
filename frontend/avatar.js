@@ -9,6 +9,7 @@ const stateLabel = document.getElementById('avatarState');
 let room = null;
 let headaudio = null;
 let head = null;
+let avatarReady = false;
 let Room = null;
 let RoomEvent = null;
 let Track = null;
@@ -45,7 +46,7 @@ function reactToChat(userText, replyText = '') {
     reaction = { mood: 'surprised', gesture: 'shrug', duration: 1.8 };
   }
 
-  if (!head) {
+  if (!head || !avatarReady) {
     pendingChatReaction = reaction;
     return;
   }
@@ -81,6 +82,7 @@ if (mount) {
       lipsyncLang: 'en',
     });
 
+    avatarReady = true;
     window.riyaHead = head;
     if (fallback) fallback.classList.add('hidden');
     setState('ready');
