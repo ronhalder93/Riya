@@ -96,8 +96,6 @@ async function sendMessage(text) {
     const data = await response.json();
     addMessage(data.reply, 'assistant');
     saveHistory(data.reply, 'assistant');
-    // The chat now sends the user's intent to Riya's 3D character for a matching reaction.
-    window.riyaReactToChat?.(clean, data.reply);
     speak(data.reply);
     if (!voiceEnabled) setAvatarState('ready');
     clearTimeout(speechTimer);
