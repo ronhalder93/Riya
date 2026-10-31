@@ -87,7 +87,9 @@ if (mount) {
     if (pendingChatReaction) {
       const queued = pendingChatReaction;
       pendingChatReaction = null;
-      reactToChat('', queued.gesture);
+      head.setMood?.(queued.mood);
+      head.playGesture?.(queued.gesture, queued.duration);
+      head.lookAtCamera?.(700);
     }
 
     // Audio-driven lip sync is optional: never let an add-on failure hide the avatar.
