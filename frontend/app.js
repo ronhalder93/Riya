@@ -45,6 +45,34 @@ function saveHistory(text, role) {
   try { localStorage.setItem('riya-chat', JSON.stringify(items.slice(-100))); } catch {}
 }
 
+
+function inferLocalAvatarAction(message, reply) {
+  const text = (String(message || '') + ' ' + String(reply || '')).toLowerCase();
+  const action = { mood: 'neutral', gaze: 'camera', gesture: 'none', body: 'idle' };
+
+  if (/\b(love you|miss you|kiss|jaan|baby|babe|darling|pyaar|प्यार|जान|किस|😘|❤️|💕)\b/i.test(text)) {
+    action.mood = 'love';
+    action.gesture = 'heart';
+  } else if (/\b(haha|lol|funny|joke| मजाक|हंस|হাসি)\b/i.test(text)) {
+    action.mood = 'happy';
+    action.gesture = 'ok';
+  } else if (/\b(sad|upset|lonely|hurt| रोना|दुखी|উদাস|কষ্ট)\b/i.test(text)) {
+    action.mood = 'sad';
+    action.gesture = 'side';
+  } else if (/\b(happy|great|awesome| अच्छा|खुश|বাহ|ভালো)\b/i.test(text)) {
+    action.mood = 'happy';
+    action.gesture = 'thumbup';
+  }
+
+  if (/\b(sit|baith|बैठ|বসো)\b/i.test(text)) action.body = 'sit';
+  else if (/\b(walk|come here|come closer|idhar aao|पास आ|এদিকে এসো)\b/i.test(text)) {
+    action.body = 'walk';
+    action.move_x = 0;
+    action.move_z = 0.2;
+  }
+  return action;
+}
+
 function setAvatarState(next) {
   if (stateLabel) stateLabel.textContent = String(next).toUpperCase();
 }
@@ -96,16 +124,14 @@ async function sendMessage(text) {
     const data = await response.json();
     addMessage(data.reply, 'assistant');
     saveHistory(data.reply, 'assistant');
-    // Ask the AI to interpret the conversational intent for Riya's body language.
-    // This runs independently so it never delays the chat reply.
-    fetch(API_BASE + '/api/avatar-action', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: clean, reply: data.reply, history }),
-    })
-      .then((actionResponse) => actionResponse.ok ? actionResponse.json() : null)
-      .then((action) => { if (action) { if (window.riyaApplyAction) window.riyaApplyAction(action); else window.riyaPendingAction = action; if (Number.isFinite(action.move_x) && Number.isFinite(action.move_z)) window.riyaMoveTo?.(action.move_x, action.move_z); } })
-      .catch((actionError) => console.warn('RIYA avatar action request failed:', actionError));
+    // Keep avatar reactions local: one chat message now costs one AI request,
+    // rather than a second OpenRouter request for mood/gesture planning.
+    const action = inferLocalAvatarAction(clean, data.reply);
+    if (window.riyaApplyAction) window.riyaApplyAction(action);
+    else window.riyaPendingAction = action;
+    if (Number.isFinite(action.move_x) && Number.isFinite(action.move_z)) {
+      window.riyaMoveTo?.(action.move_x, action.move_z);
+    }
     speak(data.reply);
     if (!voiceEnabled) setAvatarState('ready');
     clearTimeout(speechTimer);
