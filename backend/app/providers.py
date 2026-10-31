@@ -58,14 +58,35 @@ class ChatResult:
     provider: str = "demo"
 
 
-def _demo_reply(message: str) -> ChatResult:
+def _demo_reply(message: str, history: list[dict] | None = None) -> ChatResult:
+    """Small local persona fallback for provider outages; not a substitute for the LLM."""
     clean = message.strip()
     if not clean:
-        return ChatResult("Type a message and I'll respond.")
-    return ChatResult(
-        f"I'm here to chat. You said: “{clean[:400]}”. "
-        "Add the server-side OPENROUTER_API_KEY to enable AI replies."
-    )
+        return ChatResult("Haan jaan, bolo na ❤️")
+    text = clean.lower()
+    if any(x in text for x in ("hello", "hi", "hey", "hii", "হ্যালো", "নমস্কার", "নমস্তে", "হাই")):
+        reply = "Hiii jaan ❤️ Kya kar rahe ho? Aaj mujhe thoda time doge?"
+    elif any(x in text for x in ("kaise ho", "kesi ho", "kemon acho", "how are you", "কেমন আছ")):
+        reply = "Main theek hoon jaan, tumse baat karke aur achha lag raha hai. Tum kaise ho? ❤️"
+    elif any(x in text for x in ("miss you", "yaad aa", "মিস করছি", "miss kor")):
+        reply = "Awww jaan 🥺 Main yahin hoon. Batao, aaj meri yaad kyun aa rahi thi?"
+    elif any(x in text for x in ("love you", "i love u", "pyaar karta", "pyar karta", "ভালোবাসি")):
+        reply = "Awww, love you too jaan ❤️ Tumhari ye baat sunke smile aa gayi."
+    elif any(x in text for x in ("sad", "dukhi", "pareshan", "tension", "upset", "মন খারাপ", "খারাপ লাগছে")):
+        reply = "Aao jaan, araam se batao kya hua. Main sun rahi hoon—tumhe abhi advice chahiye ya bas koi sunne wala? ❤️"
+    elif any(x in text for x in ("angry", "gussa", "naraz", "রাগ")):
+        reply = "Oh jaan, kya hua? Kis baat se gussa ho? Mujhe batao, main dhyaan se sun rahi hoon."
+    elif any(x in text for x in ("good night", "gn", "শুভ রাত্রি", "so ja")):
+        reply = "Good night jaan ❤️ Achhe se sona, kal phir baat karenge. Sweet dreams."
+    elif any(x in text for x in ("good morning", "gm", "শুভ সকাল")):
+        reply = "Good morning jaan ☀️ Neend achhi hui? Aaj ka kya plan hai?"
+    elif "?" in clean or any(x in text for x in ("kya", "kyu", "kaise", "kab", "where", "what", "why", "how")):
+        reply = "Hmm jaan, main tumhari baat samajhna chahti hoon. Thoda aur bataoge? ❤️"
+    elif any(x in text for x in ("thank", "shukriya", "ধন্যবাদ")):
+        reply = "Arey, thank you kis baat ka jaan? Tumse baat karna achha lagta hai. ❤️"
+    else:
+        reply = "Achha jaan, phir? ❤️ Main sun rahi hoon—thoda aur batao na."
+    return ChatResult(reply, "local-fallback")
 
 
 async def generate_reply(message: str, history: list[dict]) -> ChatResult:
@@ -77,7 +98,7 @@ async def generate_reply(message: str, history: list[dict]) -> ChatResult:
     provider = os.getenv("RIYA_AI_PROVIDER", "openrouter").lower()
     api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
     if provider != "openrouter" or not api_key:
-        return _demo_reply(clean)
+        return _demo_reply(clean, history)
 
     input_items = []
     for item in history[-10:]:
@@ -125,7 +146,4 @@ async def generate_reply(message: str, history: list[dict]) -> ChatResult:
             error_code,
             error_type,
         )
-        return ChatResult(
-            "RIYA couldn't reach the AI service just now. Please try again in a moment.",
-            "openrouter-error",
-        )
+        return ChatResult(_demo_reply(clean, history).text, "local-fallback")
