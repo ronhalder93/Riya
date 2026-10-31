@@ -44,6 +44,7 @@ class AvatarActionResponse(BaseModel):
     mood: str = "neutral"
     gaze: str = "camera"
     gesture: str = "none"
+    body: str = "idle"
 
 
 class LiveKitTokenRequest(BaseModel):
@@ -79,6 +80,7 @@ async def avatar_action(payload: AvatarActionRequest):
         "none", "handup", "index", "ok", "thumbup", "thumbdown", "side", "shrug",
         "kiss", "heart",
     }
+    allowed_body = {"idle", "walk", "sit"}
     context = []
     for item in payload.history[-8:]:
         if isinstance(item, dict) and item.get("role") in {"user", "assistant"}:
@@ -95,15 +97,19 @@ async def avatar_action(payload: AvatarActionRequest):
         "Do not use keyword matching: understand natural Hindi, Hinglish, Bengali, and English. "
         "Only react physically when the user is addressing RIYA or the context clearly asks for a reaction; "
         "if the user is merely discussing an action, choose no gesture. "
-        "Return ONLY a JSON object with exactly these keys: mood, gaze, gesture. "
+        "Return ONLY a JSON object with exactly these keys: mood, gaze, gesture, body. "
         "mood must be one of neutral,happy,angry,sad,fear,disgust,love,sleep. "
         "gaze must be camera or forward. "
         "gesture must be one of none,handup,index,ok,thumbup,thumbdown,side,shrug,kiss,heart. "
         "Use kiss for a requested affectionate kiss gesture, heart for a loving expression, "
         "handup for greeting/waving, shrug for uncertainty, and suitable supported gestures otherwise. "
-        "For smile choose happy mood and camera gaze. Do not invent unsupported full-body actions: "
-        "walking, approaching, sitting, and dancing are not available in this avatar controller; "
-        "use neutral/no gesture for those rather than pretending they happened."
+        "For a direct natural-language request to walk, move, or come closer, set body=walk; "
+        "this only animates walking in place and does NOT move the avatar through the room. "
+        "For a direct request to sit or take a seat, set body=sit; for stand, get up, or stop moving, "
+        "set body=idle. These actions can be requested conversationally in Hindi, Hinglish, Bengali, "
+        "or English. Do not trigger them when the user is merely discussing the action. "
+        "Approaching the camera/bed, changing room position, and dancing are unsupported; never claim "
+        "those happened. For all unrelated messages set body=idle."
     )
     try:
         client = AsyncOpenAI(
@@ -129,10 +135,12 @@ async def avatar_action(payload: AvatarActionRequest):
         mood = data.get("mood", "neutral")
         gaze = data.get("gaze", "camera")
         gesture = data.get("gesture", "none")
+        body = data.get("body", "idle")
         return AvatarActionResponse(
             mood=mood if mood in allowed_moods else "neutral",
             gaze=gaze if gaze in allowed_gazes else "camera",
             gesture=gesture if gesture in allowed_gestures else "none",
+            body=body if body in allowed_body else "idle",
         )
     except Exception as exc:
         logger.info("Avatar action planning unavailable (%s).", type(exc).__name__)
