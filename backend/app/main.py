@@ -5,6 +5,7 @@ import re
 from datetime import timedelta
 
 from fastapi import FastAPI, HTTPException
+from openai import AsyncOpenAI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -33,6 +34,18 @@ class ChatResponse(BaseModel):
     provider: str
 
 
+class AvatarActionRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=2000)
+    reply: str = Field(default="", max_length=5000)
+    history: list[dict] = Field(default_factory=list, max_length=20)
+
+
+class AvatarActionResponse(BaseModel):
+    mood: str = "neutral"
+    gaze: str = "camera"
+    gesture: str = "none"
+
+
 class LiveKitTokenRequest(BaseModel):
     room_name: str = Field(default="riya-room", min_length=1, max_length=80)
     participant_name: str = Field(default="guest", min_length=1, max_length=40)
@@ -48,6 +61,76 @@ async def chat(payload: ChatRequest):
     result = await generate_reply(payload.message, payload.history)
     return ChatResponse(reply=result.text, provider=result.provider)
 
+
+
+@app.post("/api/avatar-action", response_model=AvatarActionResponse)
+async def avatar_action(payload: AvatarActionRequest):
+    """Interpret conversational intent into safe, supported avatar controls."""
+    neutral = AvatarActionResponse()
+    if os.getenv("RIYA_AI_PROVIDER", "openrouter").lower() != "openrouter":
+        return neutral
+    api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    if not api_key:
+        return neutral
+
+    allowed_moods = {"neutral", "happy", "angry", "sad", "fear", "disgust", "love", "sleep"}
+    allowed_gazes = {"camera", "forward"}
+    allowed_gestures = {
+        "none", "handup", "index", "ok", "thumbup", "thumbdown", "side", "shrug",
+        "kiss", "heart",
+    }
+    context = []
+    for item in payload.history[-8:]:
+        if isinstance(item, dict) and item.get("role") in {"user", "assistant"}:
+            content = item.get("content", item.get("text", ""))
+            if isinstance(content, str) and content.strip():
+                context.append({"role": item["role"], "content": content.strip()[:1200]})
+    context.extend([
+        {"role": "user", "content": payload.message[:2000]},
+        {"role": "assistant", "content": payload.reply[:2500]},
+    ])
+    system = (
+        "You control the expressive body language of RIYA, a 3D conversational avatar. "
+        "Infer the user's intended interaction from the latest message and short conversation context. "
+        "Do not use keyword matching: understand natural Hindi, Hinglish, Bengali, and English. "
+        "Only react physically when the user is addressing RIYA or the context clearly asks for a reaction; "
+        "if the user is merely discussing an action, choose no gesture. "
+        "Return ONLY a JSON object with exactly these keys: mood, gaze, gesture. "
+        "mood must be one of neutral,happy,angry,sad,fear,disgust,love,sleep. "
+        "gaze must be camera or forward. "
+        "gesture must be one of none,handup,index,ok,thumbup,thumbdown,side,shrug,kiss,heart. "
+        "Use kiss for a requested affectionate kiss gesture, heart for a loving expression, "
+        "handup for greeting/waving, shrug for uncertainty, and suitable supported gestures otherwise. "
+        "For smile choose happy mood and camera gaze. Do not invent unsupported full-body actions: "
+        "walking, approaching, sitting, and dancing are not available in this avatar controller; "
+        "use neutral/no gesture for those rather than pretending they happened."
+    )
+    try:
+        client = AsyncOpenAI(
+            api_key=api_key,
+            base_url="https://openrouter.ai/api/v1",
+            timeout=18.0,
+            max_retries=0,
+        )
+        response = await client.chat.completions.create(
+            model=os.getenv("RIYA_LLM_MODEL", "sao10k/l3.3-euryale-70b"),
+            messages=[{"role": "system", "content": system}, *context],
+            max_tokens=120,
+            response_format={"type": "json_object"},
+        )
+        import json
+        data = json.loads(response.choices[0].message.content or "{}")
+        mood = data.get("mood", "neutral")
+        gaze = data.get("gaze", "camera")
+        gesture = data.get("gesture", "none")
+        return AvatarActionResponse(
+            mood=mood if mood in allowed_moods else "neutral",
+            gaze=gaze if gaze in allowed_gazes else "camera",
+            gesture=gesture if gesture in allowed_gestures else "none",
+        )
+    except Exception as exc:
+        logger.info("Avatar action planning unavailable (%s).", type(exc).__name__)
+        return neutral
 
 @app.post("/api/livekit/token")
 async def livekit_token(payload: LiveKitTokenRequest):
