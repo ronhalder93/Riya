@@ -104,6 +104,91 @@ if (mount) {
     } catch (audioError) {
       console.warn('RIYA lip-sync add-on unavailable; avatar remains active:', audioError);
     }
+
+    // Procedural full-body motion on the existing Mixamo-style skeleton.
+    // No external animation files or paid services are required.
+    const motionBoneNames = [
+      'Hips', 'Spine', 'Spine1', 'Spine2',
+      'LeftArm', 'LeftForeArm', 'RightArm', 'RightForeArm',
+      'LeftUpLeg', 'LeftLeg', 'LeftFoot',
+      'RightUpLeg', 'RightLeg', 'RightFoot',
+    ];
+    const motionBones = new Map();
+    motionBoneNames.forEach((name) => {
+      const bone = head.armature?.getObjectByName(name);
+      if (bone) {
+        motionBones.set(name, {
+          bone,
+          position: bone.position.clone(),
+          rotation: bone.rotation.clone(),
+        });
+      }
+    });
+    const hasLegRig = ['Hips', 'LeftUpLeg', 'LeftLeg', 'RightUpLeg', 'RightLeg']
+      .every((name) => motionBones.has(name));
+    let bodyMotion = 'idle';
+    let bodyMotionBlend = 0;
+    let bodyMotionPhase = 0;
+
+    window.riyaBodyAction = (action = 'idle') => {
+      if (!hasLegRig) {
+        showCallStatus('This avatar model has no compatible full-body leg rig');
+        return false;
+      }
+      if (['idle', 'walk', 'sit'].includes(action)) {
+        bodyMotion = action;
+        showCallStatus(action === 'walk' ? 'Walking in place' : action === 'sit' ? 'Sitting pose' : 'Standing');
+        return true;
+      }
+      return false;
+    };
+
+    function updateBodyMotion(dt) {
+      if (!hasLegRig || !head?.armature) return;
+      const step = Math.min(Math.max(dt || 0, 0), 0.05);
+      bodyMotionPhase += step * 6.2;
+      const target = bodyMotion === 'idle' ? 0 : 1;
+      bodyMotionBlend += (target - bodyMotionBlend) * Math.min(1, step * 3.2);
+      const walk = bodyMotion === 'walk' ? bodyMotionBlend : 0;
+      const sit = bodyMotion === 'sit' ? bodyMotionBlend : 0;
+      const swing = Math.sin(bodyMotionPhase);
+      const liftL = Math.max(0, swing);
+      const liftR = Math.max(0, -swing);
+
+      const apply = (name, rx = 0, ry = 0, rz = 0, py = 0) => {
+        const base = motionBones.get(name);
+        if (!base) return;
+        base.bone.position.set(base.position.x, base.position.y + py, base.position.z);
+        base.bone.rotation.set(
+          base.rotation.x + rx * (walk + sit),
+          base.rotation.y + ry * (walk + sit),
+          base.rotation.z + rz * (walk + sit),
+        );
+      };
+
+      // Alternating, low-amplitude steps; knee and arm counter-swing.
+      apply('Hips', 0.025 * sit, 0, 0, -0.18 * sit + Math.abs(swing) * 0.018 * walk);
+      apply('Spine', -0.12 * sit, 0, 0);
+      apply('Spine1', -0.08 * sit, 0, 0);
+      apply('Spine2', -0.04 * sit, 0, 0);
+      apply('LeftUpLeg', -0.78 * sit + 0.42 * swing * walk);
+      apply('RightUpLeg', -0.78 * sit - 0.42 * swing * walk);
+      apply('LeftLeg', 1.18 * sit + 0.52 * liftR * walk);
+      apply('RightLeg', 1.18 * sit + 0.52 * liftL * walk);
+      apply('LeftFoot', -0.18 * sit - 0.18 * liftR * walk);
+      apply('RightFoot', -0.18 * sit - 0.18 * liftL * walk);
+      apply('LeftArm', 0.28 * sit - 0.26 * swing * walk);
+      apply('RightArm', 0.28 * sit + 0.26 * swing * walk);
+      apply('LeftForeArm', -0.18 * sit);
+      apply('RightForeArm', -0.18 * sit);
+    }
+
+    const audioUpdate = head.opt.update;
+    head.opt.update = (dt) => {
+      if (typeof audioUpdate === 'function') audioUpdate(dt);
+      updateBodyMotion(dt);
+    };
+    if (!hasLegRig) console.warn('RIYA full-body procedural motion disabled: compatible leg bones were not found.');
   } catch (err) {
     console.error('RIYA avatar failed to initialize:', err);
     setState('avatar error');
