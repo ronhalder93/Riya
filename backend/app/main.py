@@ -45,6 +45,8 @@ class AvatarActionResponse(BaseModel):
     gaze: str = "camera"
     gesture: str = "none"
     body: str = "idle"
+    move_x: float | None = None
+    move_z: float | None = None
 
 
 class LiveKitTokenRequest(BaseModel):
@@ -97,7 +99,7 @@ async def avatar_action(payload: AvatarActionRequest):
         "Do not use keyword matching: understand natural Hindi, Hinglish, Bengali, and English. "
         "Only react physically when the user is addressing RIYA or the context clearly asks for a reaction; "
         "if the user is merely discussing an action, choose no gesture. "
-        "Return ONLY a JSON object with exactly these keys: mood, gaze, gesture, body. "
+        "Return ONLY a JSON object with keys mood, gaze, gesture, body, move_x, move_z. "
         "mood must be one of neutral,happy,angry,sad,fear,disgust,love,sleep. "
         "gaze must be camera or forward. "
         "gesture must be one of none,handup,index,ok,thumbup,thumbdown,side,shrug,kiss,heart. "
@@ -141,6 +143,8 @@ async def avatar_action(payload: AvatarActionRequest):
             gaze=gaze if gaze in allowed_gazes else "camera",
             gesture=gesture if gesture in allowed_gestures else "none",
             body=body if body in allowed_body else "idle",
+            move_x=data.get("move_x") if isinstance(data.get("move_x"), (int, float)) else None,
+            move_z=data.get("move_z") if isinstance(data.get("move_z"), (int, float)) else None,
         )
     except Exception as exc:
         logger.info("Avatar action planning unavailable (%s).", type(exc).__name__)
