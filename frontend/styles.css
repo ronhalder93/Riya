@@ -178,3 +178,33 @@ html, body {
   outline: 2px solid #3d84cc;
   outline-offset: 1px;
 }
+
+
+/* RIYA's warm bedroom environment */
+#scene {
+  isolation: isolate;
+  background:
+    linear-gradient(180deg, rgba(18, 16, 20, .08), rgba(18, 16, 20, .18)),
+    linear-gradient(180deg, #d7b6a1 0%, #e5c9b2 68%, #6b4939 68%, #4a332b 100%);
+}
+#scene .room-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 900ms ease;
+}
+#scene .room-backdrop.loaded { opacity: 1; }
+#scene canvas {
+  position: relative;
+  z-index: 1;
+  display: block;
+  background: transparent !important;
+}
+@media (max-width: 640px) {
+  #scene .room-backdrop { background-position: 58% center; }
+}
