@@ -239,3 +239,13 @@ html, body {
   .riya-motion-controls { right: 10px; bottom: 205px; max-width: 230px; }
   .riya-motion-button { padding: 7px 9px; }
 }
+
+
+/* Remove legacy manual avatar action controls; RIYA is chat-driven. */
+.riya-motion-controls,
+.riya-motion-button,
+button[aria-label="Wave"],
+button[aria-label="Heart"],
+button[data-action="wave"],
+button[data-action="heart"],
+button[data-action="hug"] { display: none !important; }
