@@ -161,7 +161,7 @@ async function sendMessage(text) {
     addMessage(data.reply, 'assistant');
     saveHistory(data.reply, 'assistant');
     // Use the backend conversation-aware director; fall back locally only if it is unavailable.
-    const action = await getAvatarAction(clean, data.reply, [...history, { role: 'user', content: clean }, { role: 'assistant', content: data.reply }]);
+    const action = await getAvatarAction(clean, data.reply, history);
     if (window.riyaApplyAction) window.riyaApplyAction(action);
     else window.riyaPendingAction = action;
     if (Number.isFinite(action.move_x) && Number.isFinite(action.move_z)) {
