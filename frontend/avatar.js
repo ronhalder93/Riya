@@ -96,65 +96,6 @@ function showCallStatus(value) {
   callStatus.textContent = value;
 }
 
-// Add a clean, minimal apron overlay to the generated character.
-// Keep the overlay lightweight: the GLB outfit already supplies the shoulder/torso silhouette.
-let riyaApronParts = [];
-async function installRiyaApron() {
-  const hips = head?.armature?.getObjectByName('Hips');
-  const chest = head?.armature?.getObjectByName('Spine2');
-  if (!hips || !chest) return;
-  for (const part of riyaApronParts) {
-    part.parent?.remove(part);
-    part.geometry?.dispose?.();
-    if (Array.isArray(part.material)) part.material.forEach((m) => m.dispose?.());
-    else part.material?.dispose?.();
-  }
-  riyaApronParts = [];
-  const THREE = await import('three');
-  const white = new THREE.MeshStandardMaterial({
-    color: 0xf4f0e7, roughness: 0.82, metalness: 0, side: THREE.DoubleSide,
-  });
-  const black = new THREE.MeshStandardMaterial({
-    color: 0x17171b, roughness: 0.78, metalness: 0, side: THREE.DoubleSide,
-  });
-  const add = (parent, geometry, material, position) => {
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(...position);
-    mesh.renderOrder = 3;
-    parent.add(mesh);
-    riyaApronParts.push(mesh);
-    return mesh;
-  };
-  const skirtShape = new THREE.Shape();
-  skirtShape.moveTo(-0.15, 0.015);
-  skirtShape.lineTo(0.15, 0.015);
-  skirtShape.lineTo(0.19, -0.36);
-  skirtShape.quadraticCurveTo(0, -0.40, -0.19, -0.36);
-  skirtShape.closePath();
-  add(hips, new THREE.ShapeGeometry(skirtShape, 16), white, [0, -0.025, 0.145]);
-
-  add(hips, new THREE.BoxGeometry(0.34, 0.045, 0.025), black, [0, 0.015, 0.145]);
-
-  const bibShape = new THREE.Shape();
-  bibShape.moveTo(-0.115, -0.19);
-  bibShape.lineTo(0.115, -0.19);
-  bibShape.lineTo(0.13, 0.055);
-  bibShape.quadraticCurveTo(0, 0.085, -0.13, 0.055);
-  bibShape.closePath();
-  add(chest, new THREE.ShapeGeometry(bibShape, 12), white, [0, -0.10, 0.125]);
-
-  // Restore the original dark shoulder straps from the earlier RIYA look.
-  for (const side of [-1, 1]) {
-    const curve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(side * 0.12, -0.045, 0.135),
-      new THREE.Vector3(side * 0.115, 0.07, 0.105),
-      new THREE.Vector3(side * 0.09, 0.19, 0.055),
-    ]);
-    add(chest, new THREE.TubeGeometry(curve, 12, 0.012, 6, false), black, [0, 0, 0]);
-  }
-
-}
-
 const mount = document.getElementById('scene');
 const fallback = document.getElementById('avatarFallback');
 const stateLabel = document.getElementById('avatarState');
@@ -265,10 +206,6 @@ if (mount) {
       }
     }
 
-    try { await installRiyaApron(); } catch (apronError) {
-      console.warn('RIYA apron styling could not be attached:', apronError);
-    }
-
     window.riyaHead = head;
 
     // RIYA GLB stores clothing as named material primitives on a shared skinned
@@ -346,9 +283,6 @@ if (mount) {
         showCallStatus('Loading selected 3D avatar…');
         try {
           await head.showAvatar({ ...avatarOptions, url: nextUrl });
-          try { await installRiyaApron(); } catch (apronError) {
-            console.warn('RIYA apron styling could not be attached to imported model:', apronError);
-          }
           refreshMotionBones();
           refreshBodyShapeTargets();
           const compatibility = avatarCompatibilityReport();
@@ -411,9 +345,6 @@ if (mount) {
             console.warn('RIYA could not remove the saved model from browser storage:', storageError);
           }
           await head.showAvatar({ ...avatarOptions, url: DEFAULT_AVATAR });
-          try { await installRiyaApron(); } catch (apronError) {
-            console.warn('RIYA apron styling could not be restored:', apronError);
-          }
           refreshMotionBones();
           refreshBodyShapeTargets();
           const previousObjectUrl = selectedAvatarObjectUrl;
