@@ -22,14 +22,17 @@ async function run(){
   const [{GLTFLoader},THREE]=await Promise.all([import('three/addons/loaders/GLTFLoader.js'),import('three')]);
   const gltf=await new GLTFLoader().loadAsync('./avatars/RIYA.glb'),root=gltf.scene;
   const meshes=[],bones=[],morphs=new Set(),materials=new Set();let vertices=0,triangles=0;
+  root.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(root),size=box.getSize(new THREE.Vector3());
   root.traverse(n=>{
    if(n.isBone)bones.push(n.name);
    if(n.isMesh){
     const count=n.geometry?.attributes?.position?.count||0,targets=Object.keys(n.morphTargetDictionary||{});
+    const meshBox=new THREE.Box3().setFromObject(n),meshSize=meshBox.getSize(new THREE.Vector3()),center=meshBox.getCenter(new THREE.Vector3());
     vertices+=count;triangles+=n.geometry?.index?n.geometry.index.count/3:count/3;targets.forEach(x=>morphs.add(x));
-    for(const m of (Array.isArray(n.material)?n.material:[n.material]))if(m)materials.add(m.name||'(unnamed)');
-    meshes.push({name:n.name,vertices:count,skinned:!!n.isSkinnedMesh,morphTargets:targets});
+    const meshMaterials=(Array.isArray(n.material)?n.material:[n.material]).filter(Boolean).map(m=>m.name||'(unnamed)');
+    meshMaterials.forEach(m=>materials.add(m));
+    meshes.push({name:n.name,vertices:count,triangles:Math.round(n.geometry?.index?n.geometry.index.count/3:count/3),skinned:!!n.isSkinnedMesh,materials:meshMaterials,worldBounds:{width:+meshSize.x.toFixed(4),height:+meshSize.y.toFixed(4),depth:+meshSize.z.toFixed(4),centerY:+center.y.toFixed(4)},morphTargets:targets});
    }
   });
   const data={loaded:true,dimensions:{x:+size.x.toFixed(4),y:+size.y.toFixed(4),z:+size.z.toFixed(4)},totals:{meshes:meshes.length,vertices,triangles:Math.round(triangles),bones:bones.length,morphTargets:morphs.size},breastOrBustMorphs:[...morphs].filter(x=>/breast|bust|chest|boob|cleavage/i.test(x)),allMorphTargets:[...morphs].sort(),bones,materials:[...materials],meshes};
