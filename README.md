@@ -2,7 +2,7 @@
 
 RIYA is an Android-first, installable PWA starter for a friendly AI virtual companion.
 
-> Current milestone: Phase 2 foundation. The 3D avatar is a lightweight procedural placeholder and must be replaced by a properly licensed, rigged GLB character for production.
+> Current milestone: Phase 2 foundation. The current brunette GLB is a demo character. A photorealistic RIYA character still requires a separately licensed/customized adult character asset and compatibility testing.
 
 ## Stack
 
@@ -96,6 +96,21 @@ RIYA is a fictional, friendly, supportive AI assistant. It should not present it
 7. Phase 7: Android 10/device testing and performance profiling.
 8. Phase 8: Render deployment and live verification.
 9. Phase 9: optional Android wrapper and signed APK build.
+
+## Photorealistic avatar integration
+
+The avatar loader accepts an optional custom GLB URL before `frontend/avatar.js` loads:
+
+```html
+<script>
+  window.RIYA_AVATAR_URL = './assets/riya-photoreal.glb';
+</script>
+<script type="module" src="./avatar.js"></script>
+```
+
+If the configured character fails to load in TalkingHead, RIYA automatically falls back to the current demo avatar instead of leaving the scene blank. Do not point this setting at an arbitrary GLB and assume it is compatible: validate its skeleton, skin weights, facial morph targets, materials, and animation behavior first. The current procedural body poses depend on Mixamo-style bone names and may need retargeting for a new rig.
+
+A suitable production asset should be an adult photorealistic digital human with PBR skin/hair textures, a compatible humanoid skeleton, facial blendshapes for expressions/lip sync, and separate skinned clothing meshes if outfit switching is required. The free CC0 Woman Base Mesh at https://grab3d.com/models/characters/woman-base-character/ is one possible starting point (its page advertises a rigged GLB and walk/run clips), but it is a neutral base mesh, not a finished Indian-looking RIYA character; it must be inspected, customized, and tested before replacing the live model.
 
 ## Current limitations
 
