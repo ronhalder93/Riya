@@ -70,7 +70,7 @@ if (mount) {
       const mood = moods.includes(action.mood) ? action.mood : 'neutral';
       const gesture = gestures.includes(action.gesture) ? action.gesture : 'none';
       const body = ['idle', 'walk', 'sit'].includes(action.body) ? action.body : 'idle';
-      const poses = ['natural', 'wave', 'thinking', 'open_arms', 'cross_arms', 'dance', 'lean_in', 'nod'];
+      const poses = ['natural', 'wave', 'thinking', 'open_arms', 'cross_arms', 'dance', 'lean_in', 'nod', 'playful', 'shy'];
       bodyPose = poses.includes(action.pose) ? action.pose : 'natural';
       try {
         if (window.riyaBodyAction) window.riyaBodyAction(body);
@@ -267,6 +267,18 @@ if (mount) {
       } else if (bodyPose === 'nod') {
         setPose('Neck', Math.sin(bodyMotionPhase * 3.5) * 0.12, 0, 0);
         setPose('Head', Math.sin(bodyMotionPhase * 3.5) * 0.08, 0, 0);
+      } else if (bodyPose === 'playful') {
+        setPose('Spine', -0.07, 0, 0.06);
+        setPose('Neck', 0.04, 0, -0.10);
+        setPose('Head', 0.02, 0, -0.08);
+        setPose('RightArm', -0.62 + wavePulse * 0.04, 0, -0.32);
+        setPose('RightForeArm', -0.82, 0, -0.10);
+      } else if (bodyPose === 'shy') {
+        setPose('Neck', 0.08, 0, 0.12);
+        setPose('Head', 0.04, 0, 0.10);
+        setPose('LeftArm', -0.48, 0, 0.34);
+        setPose('LeftForeArm', -0.88, 0, 0.12);
+        setPose('RightArm', -0.36, 0, -0.22);
       }
 
       // Gentle breathing keeps the avatar from looking frozen between gestures.
