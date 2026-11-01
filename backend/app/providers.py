@@ -90,19 +90,30 @@ def _demo_reply(message: str, history: list[dict] | None = None) -> ChatResult:
 
 
 async def generate_reply(message: str, history: list[dict]) -> ChatResult:
-    """Use OpenRouter when configured; otherwise use a safe demo fallback."""
+    """Try the preferred configured provider, then fail over to the other provider."""
     clean = message.strip()
     if not clean:
         return ChatResult("Type a message and I'll respond.")
 
-    provider = os.getenv("RIYA_AI_PROVIDER", "openrouter").lower()
     mega_key = os.getenv("MEGANOVA_API_KEY", "").strip()
     openrouter_key = os.getenv("OPENROUTER_API_KEY", "").strip()
-    api_key = mega_key or openrouter_key
-    if provider not in {"openrouter", "meganova"} or not api_key:
-        return _demo_reply(clean, history)
-    base_url = "https://inference.meganova.ai/v1" if mega_key else "https://openrouter.ai/api/v1"
-    default_model = "meganova-ai/manta-flash-1.0" if mega_key else "sao10k/l3.3-euryale-70b"
+    preferred = os.getenv("RIYA_AI_PROVIDER", "meganova").strip().lower()
+    if preferred not in {"meganova", "openrouter"}:
+        preferred = "meganova"
+
+    providers = {
+        "meganova": {
+            "key": mega_key,
+            "base_url": "https://inference.meganova.ai/v1",
+            "model": os.getenv("MEGANOVA_MODEL", "meganova-ai/manta-flash-1.0"),
+        },
+        "openrouter": {
+            "key": openrouter_key,
+            "base_url": "https://openrouter.ai/api/v1",
+            "model": os.getenv("OPENROUTER_MODEL", "sao10k/l3.3-euryale-70b"),
+        },
+    }
+    order = [preferred, "openrouter" if preferred == "meganova" else "meganova"]
 
     input_items = []
     for item in history[-10:]:
@@ -115,39 +126,49 @@ async def generate_reply(message: str, history: list[dict]) -> ChatResult:
             if content:
                 input_items.append({"role": role, "content": content})
     input_items.append({"role": "user", "content": clean[:2000]})
+    messages = [{"role": "system", "content": SYSTEM_INSTRUCTIONS}, *input_items]
 
-    try:
-        client = AsyncOpenAI(
-            api_key=api_key,
-            base_url=base_url,
-            timeout=30.0,
-            max_retries=0,
-        )
-        messages = [{"role": "system", "content": SYSTEM_INSTRUCTIONS}, *input_items]
-        response = await client.chat.completions.create(
-            model=os.getenv("RIYA_LLM_MODEL", default_model),
-            messages=messages,
-            max_tokens=600,
-        )
-        answer = (response.choices[0].message.content or "").strip()
-        if not answer:
-            return ChatResult("I couldn't form a reply just now. Please try again.", "openrouter")
-        return ChatResult(answer[:5000], "openrouter")
-    except Exception as exc:
-        status_code = getattr(exc, "status_code", None)
-        error_body = getattr(exc, "body", None)
-        error_info = error_body.get("error", {}) if isinstance(error_body, dict) else {}
-        error_code = error_info.get("code") if isinstance(error_info, dict) else None
-        error_type = error_info.get("type") if isinstance(error_info, dict) else None
-        if not isinstance(error_code, str) or len(error_code) > 80:
-            error_code = None
-        if not isinstance(error_type, str) or len(error_type) > 80:
-            error_type = None
-        logger.warning(
-            "OpenRouter request failed (exception=%s, status=%s, code=%s, error_type=%s).",
-            type(exc).__name__,
-            status_code,
-            error_code,
-            error_type,
-        )
-        return ChatResult(_demo_reply(clean, history).text, "local-fallback")
+    attempted = False
+    for name in order:
+        config = providers[name]
+        if not config["key"]:
+            continue
+        attempted = True
+        try:
+            client = AsyncOpenAI(
+                api_key=config["key"],
+                base_url=config["base_url"],
+                timeout=30.0,
+                max_retries=0,
+            )
+            response = await client.chat.completions.create(
+                model=config["model"],
+                messages=messages,
+                max_tokens=600,
+            )
+            answer = (response.choices[0].message.content or "").strip()
+            if answer:
+                return ChatResult(answer[:5000], name)
+            logger.warning("%s returned an empty chat response; trying backup provider.", name)
+        except Exception as exc:
+            status_code = getattr(exc, "status_code", None)
+            error_body = getattr(exc, "body", None)
+            error_info = error_body.get("error", {}) if isinstance(error_body, dict) else {}
+            error_code = error_info.get("code") if isinstance(error_info, dict) else None
+            error_type = error_info.get("type") if isinstance(error_info, dict) else None
+            if not isinstance(error_code, str) or len(error_code) > 80:
+                error_code = None
+            if not isinstance(error_type, str) or len(error_type) > 80:
+                error_type = None
+            logger.warning(
+                "%s request failed (exception=%s, status=%s, code=%s, error_type=%s); trying backup if configured.",
+                name,
+                type(exc).__name__,
+                status_code,
+                error_code,
+                error_type,
+            )
+
+    if attempted:
+        logger.error("All configured AI providers failed; using local persona fallback.")
+    return _demo_reply(clean, history)
