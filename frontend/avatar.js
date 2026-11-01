@@ -505,10 +505,15 @@ if (mount) {
     const initialCompatibility = avatarCompatibilityReport();
     console.info('RIYA avatar compatibility:', initialCompatibility);
     if (!initialCompatibility.fullBodyMotion || !initialCompatibility.breastMorphs.length) {
+      const isGeneratedRiya = activeAvatarUrl === RIYA_AVATAR;
       showCallStatus(
         'Avatar loaded; ' +
         (!initialCompatibility.fullBodyMotion ? 'full-body motion needs Mixamo-style leg bones. ' : '') +
-        (!initialCompatibility.breastMorphs.length ? 'No breast/bust morphs found; body-shape control unavailable.' : '')
+        (!initialCompatibility.breastMorphs.length
+          ? (isGeneratedRiya
+            ? 'RIYA body proportions are built into this model; live body-shape sliders are not included.'
+            : 'No breast/bust morphs found; body-shape control unavailable.')
+          : '')
       );
     }
 
