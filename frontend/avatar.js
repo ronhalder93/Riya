@@ -12,6 +12,12 @@ const AVATAR = typeof window.RIYA_AVATAR_URL === 'string' && window.RIYA_AVATAR_
 const mount = document.getElementById('scene');
 const fallback = document.getElementById('avatarFallback');
 const stateLabel = document.getElementById('avatarState');
+const characterStudioButton = document.getElementById('characterStudioButton');
+if (characterStudioButton) {
+  characterStudioButton.addEventListener('click', () => {
+    window.open('https://dionysus.dk/webxr/charactercreator/?sex=female&hair=long01', '_blank', 'noopener');
+  });
+}
 let room = null;
 let headaudio = null;
 let head = null;
