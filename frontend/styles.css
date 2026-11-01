@@ -72,20 +72,22 @@ html, body {
   mask-image: linear-gradient(180deg, transparent, #000 8%, #000 92%, transparent);
 }
 
-.bubble {
+/* Both sides' message bubbles are invisible; message text remains unchanged. */
+.bubble,
+.bubble.user {
   max-width: 82%;
   padding: 9px 13px;
   border-radius: 16px;
-  background: rgba(28, 33, 45, .92);
-  border: 1px solid rgba(255, 255, 255, .08);
-  backdrop-filter: blur(8px);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   word-wrap: break-word;
 }
 
 .bubble.user {
   align-self: flex-end;
-  background: #2b6cb0;
-  border-color: #3d84cc;
 }
 
 .dock {
@@ -95,8 +97,9 @@ html, body {
   bottom: 0;
   z-index: 20;
   padding: 10px 14px calc(12px + env(safe-area-inset-bottom));
-  background: linear-gradient(0deg, #10131a 55%, rgba(16, 19, 26, .7));
-  border-top: 1px solid rgba(255, 255, 255, .08);
+  background: transparent;
+  border-top: 0;
+  box-shadow: none;
 }
 
 #attachmentList {
@@ -115,12 +118,13 @@ html, body {
 
 .camrow button,
 .camrow select {
-  background: rgba(255, 255, 255, .08);
+  background: transparent;
   color: inherit;
-  border: 1px solid rgba(255, 255, 255, .16);
+  border: 1px solid rgba(255, 255, 255, .28);
   border-radius: 10px;
   padding: 7px 10px;
   font-size: 12px;
+  backdrop-filter: blur(2px);
 }
 
 #cameraPreview {
@@ -138,6 +142,7 @@ html, body {
   margin: 0 0 8px;
   font-size: 11px;
   color: #8b94a7;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .75);
 }
 
 #chatForm {
@@ -148,37 +153,39 @@ html, body {
 
 #chatForm button {
   flex: 0 0 auto;
-  background: rgba(255, 255, 255, .1);
+  background: transparent;
   color: inherit;
-  border: 1px solid rgba(255, 255, 255, .16);
+  border: 1px solid rgba(255, 255, 255, .28);
   border-radius: 12px;
   padding: 10px 14px;
   font-size: 14px;
+  backdrop-filter: blur(2px);
 }
 
 #chatForm button[type="submit"] {
-  background: #2b6cb0;
-  border-color: #3d84cc;
+  background: rgba(43, 108, 176, .72);
+  border-color: rgba(95, 160, 225, .8);
   font-weight: 600;
 }
 
 #messageInput {
   flex: 1 1 auto;
   min-width: 0;
-  background: #0e1117;
-  color: inherit;
-  border: 1px solid rgba(255, 255, 255, .14);
+  background: #fff;
+  color: #151821;
+  border: 1px solid rgba(0, 0, 0, .16);
   border-radius: 12px;
   padding: 11px 13px;
   font-size: 15px;
 }
+
+#messageInput::placeholder { color: #657084; }
 
 #messageInput:focus,
 #chatForm button:focus-visible {
   outline: 2px solid #3d84cc;
   outline-offset: 1px;
 }
-
 
 /* RIYA's warm bedroom environment */
 #scene {
@@ -209,42 +216,11 @@ html, body {
   #scene .room-backdrop { background-position: 58% center; }
 }
 
-
 /* Manual Wave, Heart and Hug controls are intentionally removed. Avatar actions are chat-driven. */
 .riya-motion-controls, .riya-motion-button, button[aria-label="Wave"], button[aria-label="Heart"], button[aria-label="Hug"], button[data-action="wave"], button[data-action="heart"], button[data-action="hug"] { display: none !important; }
 
-
 /* Immersive avatar view: chat history can be tucked away without deleting it. */
 #messages.chat-hidden { display: none; }
-
-.dock {
-  background: transparent;
-  border-top: 0;
-  box-shadow: none;
-}
-
-#messageInput {
-  background: transparent;
-  border-color: rgba(255, 255, 255, .28);
-  backdrop-filter: blur(2px);
-}
-
-#messageInput::placeholder { color: rgba(255, 255, 255, .72); }
-
-#chatForm button,
-.camrow button,
-.camrow select {
-  background: transparent;
-  border-color: rgba(255, 255, 255, .28);
-  backdrop-filter: blur(2px);
-}
-
-#chatForm button[type="submit"] {
-  background: rgba(43, 108, 176, .72);
-  border-color: rgba(95, 160, 225, .8);
-}
-
-#cameraNotice { text-shadow: 0 1px 3px rgba(0, 0, 0, .75); }
 
 #chatHistoryToggle {
   background: rgba(255, 255, 255, .12);
