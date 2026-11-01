@@ -114,6 +114,27 @@ async function fetchWithRetry(url, options, retries = 1) {
   throw lastError || new Error('RIYA server is unavailable');
 }
 
+function parseDirectAvatarCommand(message) {
+  const text = String(message || '').toLowerCase().trim();
+  if (!text) return null;
+
+  if (/\b(jacket|coat)\b/.test(text) && /\b(hide|remove|off|hatao|utar[o]?|nikal[o]?|chhupa[o]?)\b/.test(text)) {
+    return { kind: 'jacket', visible: false };
+  }
+  if (/\b(jacket|coat)\b/.test(text) && /\b(show|wear|put on|pehen|wapas|dikha[o]?)\b/.test(text)) {
+    return { kind: 'jacket', visible: true };
+  }
+
+  if (/\b(dance|nach|naacho)\b/.test(text)) return { kind: 'action', action: { mood: 'happy', pose: 'dance', body: 'idle' } };
+  if (/\b(sit|baith|baitho)\b/.test(text)) return { kind: 'action', action: { mood: 'neutral', pose: 'natural', body: 'sit' } };
+  if (/\b(stand|khade|khadi|uth[o]?)\b/.test(text)) return { kind: 'action', action: { mood: 'neutral', pose: 'natural', body: 'idle' } };
+  if (/\b(wave|hello|hi|haath hila[o]?)\b/.test(text)) return { kind: 'action', action: { mood: 'happy', pose: 'wave', body: 'idle' } };
+  if (/\b(shy|sharma[o]?|sharma ja[o]?)\b/.test(text)) return { kind: 'action', action: { mood: 'love', pose: 'shy', body: 'idle' } };
+  if (/\b(hug|gale lag[o]?|hug me)\b/.test(text)) return { kind: 'action', action: { mood: 'love', pose: 'open_arms', body: 'idle' } };
+  if (/\b(thinking|soch[o]?|think)\b/.test(text)) return { kind: 'action', action: { mood: 'neutral', pose: 'thinking', body: 'idle' } };
+  return null;
+}
+
 async function getAvatarAction(message, reply, history) {
   try {
     const response = await fetchWithRetry(API_BASE + '/api/avatar-action', {
@@ -166,12 +187,17 @@ async function sendMessage(text) {
     const data = await response.json();
     addMessage(data.reply, 'assistant');
     saveHistory(data.reply, 'assistant');
-    // Use the backend conversation-aware director; fall back locally only if it is unavailable.
-    const action = await getAvatarAction(clean, data.reply, history);
-    if (window.riyaApplyAction) window.riyaApplyAction(action);
-    else window.riyaPendingAction = action;
-    if (Number.isFinite(action.move_x) && Number.isFinite(action.move_z)) {
-      window.riyaMoveTo?.(action.move_x, action.move_z);
+    // Explicit chat commands take priority; ordinary conversation keeps the backend director.
+    const directCommand = parseDirectAvatarCommand(clean);
+    if (directCommand?.kind === 'jacket') {
+      window.riyaSetJacketVisible?.(directCommand.visible);
+    } else {
+      const action = directCommand?.action || await getAvatarAction(clean, data.reply, history);
+      if (window.riyaApplyAction) window.riyaApplyAction(action);
+      else window.riyaPendingAction = action;
+      if (Number.isFinite(action.move_x) && Number.isFinite(action.move_z)) {
+        window.riyaMoveTo?.(action.move_x, action.move_z);
+      }
     }
     speak(data.reply);
     if (!voiceEnabled) setAvatarState('ready');
@@ -188,6 +214,9 @@ async function sendMessage(text) {
     setAvatarState('ready');
   }
 }
+
+// Expose the same chat path for voice/other in-app callers.
+window.riyaSay = sendMessage;
 
 form.addEventListener('submit', (e) => {
   e.preventDefault();
