@@ -96,8 +96,8 @@ function showCallStatus(value) {
   callStatus.textContent = value;
 }
 
-// Add a simple, skinned-to-bones maid-inspired apron overlay to the generated character.
-// The base outfit is a dark tailored suit; these meshes are attached to the hips and chest bones.
+// Add a clean, minimal apron overlay to the generated character.
+// Keep the overlay lightweight: the GLB outfit already supplies the shoulder/torso silhouette.
 let riyaApronParts = [];
 async function installRiyaApron() {
   const hips = head?.armature?.getObjectByName('Hips');
@@ -113,9 +113,6 @@ async function installRiyaApron() {
   const THREE = await import('three');
   const white = new THREE.MeshStandardMaterial({
     color: 0xf4f0e7, roughness: 0.82, metalness: 0, side: THREE.DoubleSide,
-  });
-  const black = new THREE.MeshStandardMaterial({
-    color: 0x17171b, roughness: 0.78, metalness: 0, side: THREE.DoubleSide,
   });
   const add = (parent, geometry, material, position) => {
     const mesh = new THREE.Mesh(geometry, material);
@@ -133,9 +130,6 @@ async function installRiyaApron() {
   skirtShape.closePath();
   add(hips, new THREE.ShapeGeometry(skirtShape, 16), white, [0, -0.025, 0.145]);
 
-  const belt = add(hips, new THREE.BoxGeometry(0.34, 0.045, 0.025), black, [0, 0.015, 0.145]);
-  belt.scale.set(1, 1, 1);
-
   const bibShape = new THREE.Shape();
   bibShape.moveTo(-0.115, -0.19);
   bibShape.lineTo(0.115, -0.19);
@@ -144,15 +138,6 @@ async function installRiyaApron() {
   bibShape.closePath();
   add(chest, new THREE.ShapeGeometry(bibShape, 12), white, [0, -0.10, 0.125]);
 
-  // Narrow dark shoulder straps frame the white bib.
-  for (const side of [-1, 1]) {
-    const curve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(side * 0.12, -0.045, 0.135),
-      new THREE.Vector3(side * 0.115, 0.07, 0.105),
-      new THREE.Vector3(side * 0.09, 0.19, 0.055),
-    ]);
-    add(chest, new THREE.TubeGeometry(curve, 12, 0.012, 6, false), black, [0, 0, 0]);
-  }
 }
 
 const mount = document.getElementById('scene');
@@ -510,7 +495,7 @@ if (mount) {
     const initialCompatibility = avatarCompatibilityReport();
     console.info('RIYA avatar compatibility:', initialCompatibility);
     if (!initialCompatibility.fullBodyMotion || !initialCompatibility.breastMorphs.length) {
-      const isGeneratedRiya = activeAvatarUrl === RIYA_AVATAR;
+      const isGeneratedRiya = activeAvatarUrl === RIYA_AVATAR || /(?:^|\/)RIYA\.glb(?:$|[?#])/i.test(activeAvatarUrl);
       showCallStatus(
         'Avatar loaded; ' +
         (!initialCompatibility.fullBodyMotion ? 'full-body motion needs Mixamo-style leg bones. ' : '') +
