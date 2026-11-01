@@ -98,7 +98,7 @@ async def avatar_action(payload: AvatarActionRequest):
         "kiss", "heart",
     }
     allowed_body = {"idle", "walk", "sit"}
-    allowed_poses = {"natural", "wave", "thinking", "open_arms", "cross_arms", "dance", "lean_in", "nod"}
+    allowed_poses = {"natural", "wave", "thinking", "open_arms", "cross_arms", "dance", "lean_in", "nod", "playful", "shy"}
     context = []
     for item in payload.history[-8:]:
         if isinstance(item, dict) and item.get("role") in {"user", "assistant"}:
@@ -130,7 +130,8 @@ async def avatar_action(payload: AvatarActionRequest):
         "Never claim real object interaction or a physical hug. The dance pose is a small stylized procedural motion, not full dance choreography. "
         "Choose a subtle full-body pose when useful: wave for greeting, thinking for reflection, open_arms for welcoming, "
         "cross_arms for a reserved/considering stance, dance only when the conversation clearly invites playful celebration, "
-        "lean_in for attentive warmth, nod for agreement/listening, otherwise natural. Do not overuse poses. "
+        "lean_in for attentive warmth, nod for agreement/listening, playful for welcomed light flirting, "
+        "shy for bashful compliments, otherwise natural. Do not overuse poses or imply physical contact. "
         "Return ONLY JSON with keys mood,gaze,gesture,body,pose,move_x,move_z. "
         "mood: neutral,happy,angry,sad,fear,disgust,love,sleep. gaze: camera or forward. "
         "gesture: none,handup,index,ok,thumbup,thumbdown,side,shrug,kiss,heart. "
