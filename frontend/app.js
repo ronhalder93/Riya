@@ -6,6 +6,7 @@ const input = document.querySelector('#messageInput');
 const micButton = document.querySelector('#micBtn');
 const stateLabel = document.querySelector('#activityState');
 const voiceToggle = document.querySelector('#voiceToggle');
+const chatHistoryToggle = document.querySelector('#chatHistoryToggle');
 const fileInput = document.querySelector('#fileInput');
 const attachBtn = document.querySelector('#attachBtn');
 const attachmentList = document.querySelector('#attachmentList');
@@ -199,6 +200,14 @@ function renderAttachments() {
   attachmentList.textContent = attachments.length
     ? attachments.map((f) => f.name).join(' · ') + ' (names only)'
     : '';
+}
+
+if (chatHistoryToggle) {
+  chatHistoryToggle.addEventListener('click', () => {
+    const hidden = messagesEl.classList.toggle('chat-hidden');
+    chatHistoryToggle.textContent = hidden ? 'Show chat' : 'Hide chat';
+    chatHistoryToggle.setAttribute('aria-expanded', String(!hidden));
+  });
 }
 
 voiceToggle.addEventListener('click', (e) => {
