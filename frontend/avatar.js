@@ -99,6 +99,55 @@ if (mount) {
     if (fallback) fallback.classList.add('hidden');
     setState('ready');
 
+    // Let the user preview a locally supplied GLB without committing a large,
+    // potentially licensed character asset to the repository.
+    const avatarFileInput = document.getElementById('avatarFileInput');
+    const avatarUploadButton = document.getElementById('avatarUploadButton');
+    let selectedAvatarUrl = AVATAR;
+    let selectedAvatarObjectUrl = null;
+    if (avatarUploadButton && avatarFileInput) {
+      avatarUploadButton.addEventListener('click', () => avatarFileInput.click());
+      avatarFileInput.addEventListener('change', async () => {
+        const file = avatarFileInput.files?.[0];
+        avatarFileInput.value = '';
+        if (!file) return;
+        if (!file.name.toLowerCase().endsWith('.glb') || file.size > 100 * 1024 * 1024) {
+          showCallStatus('Choose a GLB file smaller than 100 MB');
+          return;
+        }
+        const nextUrl = URL.createObjectURL(file);
+        avatarUploadButton.disabled = true;
+        setState('loading custom avatar');
+        showCallStatus('Loading selected 3D avatar…');
+        try {
+          await head.showAvatar({ ...avatarOptions, url: nextUrl });
+          const previousObjectUrl = selectedAvatarObjectUrl;
+          selectedAvatarObjectUrl = nextUrl;
+          selectedAvatarUrl = nextUrl;
+          if (previousObjectUrl) URL.revokeObjectURL(previousObjectUrl);
+          setState('custom avatar ready');
+          showCallStatus('Custom avatar loaded for this session');
+        } catch (loadError) {
+          URL.revokeObjectURL(nextUrl);
+          console.warn('RIYA custom GLB could not be loaded:', loadError);
+          try {
+            await head.showAvatar({ ...avatarOptions, url: selectedAvatarUrl });
+            setState(selectedAvatarUrl === DEFAULT_AVATAR ? 'ready' : 'custom avatar ready');
+            showCallStatus('That GLB was not compatible; previous avatar restored');
+          } catch (restoreError) {
+            console.error('RIYA avatar restore failed:', restoreError);
+            setState('avatar error');
+            showCallStatus('Avatar could not be restored. Refresh the page.');
+          }
+        } finally {
+          avatarUploadButton.disabled = false;
+        }
+      });
+    }
+    window.addEventListener('beforeunload', () => {
+      if (selectedAvatarObjectUrl) URL.revokeObjectURL(selectedAvatarObjectUrl);
+    }, { once: true });
+
     // Audio-driven lip sync is optional: never let an add-on failure hide the avatar.
     try {
       const { HeadAudioNode } = await import('https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/modules/headaudio.mjs');
