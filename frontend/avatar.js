@@ -304,7 +304,13 @@ if (mount) {
         avatarResetButton.disabled = true;
         showCallStatus('Restoring the demo avatar…');
         try {
-          await deleteSavedAvatar();
+          let removedFromStorage = true;
+          try {
+            await deleteSavedAvatar();
+          } catch (storageError) {
+            removedFromStorage = false;
+            console.warn('RIYA could not remove the saved model from browser storage:', storageError);
+          }
           await head.showAvatar({ ...avatarOptions, url: DEFAULT_AVATAR });
           refreshMotionBones();
           refreshBodyShapeTargets();
@@ -314,7 +320,9 @@ if (mount) {
           selectedAvatarUrl = DEFAULT_AVATAR;
           if (previousObjectUrl) URL.revokeObjectURL(previousObjectUrl);
           setState('ready');
-          showCallStatus('Demo avatar restored; saved custom model removed from this device');
+          showCallStatus(removedFromStorage
+            ? 'Demo avatar restored; saved custom model removed from this device'
+            : 'Demo avatar restored for this session, but browser storage could not be cleared');
         } catch (resetError) {
           console.error('RIYA could not restore the demo avatar:', resetError);
           avatarResetButton.disabled = false;
