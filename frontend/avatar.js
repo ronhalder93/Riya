@@ -3,11 +3,11 @@ const API_BASE = 'https://riya-api-plnn.onrender.com';
 const WORKLET = 'https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/modules/headworklet.mjs';
 const MODEL = 'https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/model-en-mixed.bin';
 const DEFAULT_AVATAR = 'https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/avatars/brunette.glb';
-// A production character can be supplied without changing the avatar runtime.
-// Set window.RIYA_AVATAR_URL before avatar.js loads; incompatible models fall back safely.
+const RIYA_AVATAR = './avatars/RIYA.glb';
+// A developer can override the generated RIYA model; a failed custom URL falls back to the demo.
 const AVATAR = typeof window.RIYA_AVATAR_URL === 'string' && window.RIYA_AVATAR_URL.trim()
   ? window.RIYA_AVATAR_URL.trim()
-  : DEFAULT_AVATAR;
+  : RIYA_AVATAR;
 
 
 // Keep a user-imported GLB on this device so it survives refreshes without
@@ -94,6 +94,65 @@ document.body.appendChild(callStatus);
 
 function showCallStatus(value) {
   callStatus.textContent = value;
+}
+
+// Add a simple, skinned-to-bones maid-inspired apron overlay to the generated character.
+// The base outfit is a dark tailored suit; these meshes are attached to the hips and chest bones.
+let riyaApronParts = [];
+async function installRiyaApron() {
+  const hips = head?.armature?.getObjectByName('Hips');
+  const chest = head?.armature?.getObjectByName('Spine2');
+  if (!hips || !chest) return;
+  for (const part of riyaApronParts) {
+    part.parent?.remove(part);
+    part.geometry?.dispose?.();
+    if (Array.isArray(part.material)) part.material.forEach((m) => m.dispose?.());
+    else part.material?.dispose?.();
+  }
+  riyaApronParts = [];
+  const THREE = await import('three');
+  const white = new THREE.MeshStandardMaterial({
+    color: 0xf4f0e7, roughness: 0.82, metalness: 0, side: THREE.DoubleSide,
+  });
+  const black = new THREE.MeshStandardMaterial({
+    color: 0x17171b, roughness: 0.78, metalness: 0, side: THREE.DoubleSide,
+  });
+  const add = (parent, geometry, material, position) => {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(...position);
+    mesh.renderOrder = 3;
+    parent.add(mesh);
+    riyaApronParts.push(mesh);
+    return mesh;
+  };
+  const skirtShape = new THREE.Shape();
+  skirtShape.moveTo(-0.15, 0.015);
+  skirtShape.lineTo(0.15, 0.015);
+  skirtShape.lineTo(0.19, -0.36);
+  skirtShape.quadraticCurveTo(0, -0.40, -0.19, -0.36);
+  skirtShape.closePath();
+  add(hips, new THREE.ShapeGeometry(skirtShape, 16), white, [0, -0.025, 0.145]);
+
+  const belt = add(hips, new THREE.BoxGeometry(0.34, 0.045, 0.025), black, [0, 0.015, 0.145]);
+  belt.scale.set(1, 1, 1);
+
+  const bibShape = new THREE.Shape();
+  bibShape.moveTo(-0.115, -0.19);
+  bibShape.lineTo(0.115, -0.19);
+  bibShape.lineTo(0.13, 0.055);
+  bibShape.quadraticCurveTo(0, 0.085, -0.13, 0.055);
+  bibShape.closePath();
+  add(chest, new THREE.ShapeGeometry(bibShape, 12), white, [0, -0.10, 0.125]);
+
+  // Narrow dark shoulder straps frame the white bib.
+  for (const side of [-1, 1]) {
+    const curve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(side * 0.12, -0.045, 0.135),
+      new THREE.Vector3(side * 0.115, 0.07, 0.105),
+      new THREE.Vector3(side * 0.09, 0.19, 0.055),
+    ]);
+    add(chest, new THREE.TubeGeometry(curve, 12, 0.012, 6, false), black, [0, 0, 0]);
+  }
 }
 
 const mount = document.getElementById('scene');
@@ -201,6 +260,10 @@ if (mount) {
       }
     }
 
+    try { await installRiyaApron(); } catch (apronError) {
+      console.warn('RIYA apron styling could not be attached:', apronError);
+    }
+
     window.riyaHead = head;
     window.riyaApplyAction = (action = {}) => {
       if (!head) return;
@@ -250,6 +313,9 @@ if (mount) {
         showCallStatus('Loading selected 3D avatar…');
         try {
           await head.showAvatar({ ...avatarOptions, url: nextUrl });
+          try { await installRiyaApron(); } catch (apronError) {
+            console.warn('RIYA apron styling could not be attached to imported model:', apronError);
+          }
           refreshMotionBones();
           refreshBodyShapeTargets();
           const compatibility = avatarCompatibilityReport();
@@ -312,6 +378,9 @@ if (mount) {
             console.warn('RIYA could not remove the saved model from browser storage:', storageError);
           }
           await head.showAvatar({ ...avatarOptions, url: DEFAULT_AVATAR });
+          try { await installRiyaApron(); } catch (apronError) {
+            console.warn('RIYA apron styling could not be restored:', apronError);
+          }
           refreshMotionBones();
           refreshBodyShapeTargets();
           const previousObjectUrl = selectedAvatarObjectUrl;
