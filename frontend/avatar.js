@@ -9,6 +9,29 @@ const AVATAR = typeof window.RIYA_AVATAR_URL === 'string' && window.RIYA_AVATAR_
   ? window.RIYA_AVATAR_URL.trim()
   : DEFAULT_AVATAR;
 
+const callStatus = document.createElement('div');
+callStatus.setAttribute('role', 'status');
+callStatus.setAttribute('aria-live', 'polite');
+callStatus.textContent = 'Call ready';
+Object.assign(callStatus.style, {
+  position: 'fixed',
+  right: '16px',
+  bottom: '252px',
+  zIndex: '25',
+  maxWidth: 'min(280px, calc(100vw - 32px))',
+  padding: '8px 12px',
+  borderRadius: '12px',
+  background: 'rgba(21, 24, 33, 0.88)',
+  color: '#fff',
+  fontSize: '12px',
+  lineHeight: '1.4',
+});
+document.body.appendChild(callStatus);
+
+function showCallStatus(value) {
+  callStatus.textContent = value;
+}
+
 const mount = document.getElementById('scene');
 const fallback = document.getElementById('avatarFallback');
 const stateLabel = document.getElementById('avatarState');
@@ -485,29 +508,6 @@ Object.assign(btn.style, {
   fontWeight: '600',
 });
 document.body.appendChild(btn);
-
-const callStatus = document.createElement('div');
-callStatus.setAttribute('role', 'status');
-callStatus.setAttribute('aria-live', 'polite');
-callStatus.textContent = 'Call ready';
-Object.assign(callStatus.style, {
-  position: 'fixed',
-  right: '16px',
-  bottom: '252px',
-  zIndex: '25',
-  maxWidth: 'min(280px, calc(100vw - 32px))',
-  padding: '8px 12px',
-  borderRadius: '12px',
-  background: 'rgba(21, 24, 33, 0.88)',
-  color: '#fff',
-  fontSize: '12px',
-  lineHeight: '1.4',
-});
-document.body.appendChild(callStatus);
-
-function showCallStatus(value) {
-  callStatus.textContent = value;
-}
 
 function resetBtn(status = 'Call ready') {
   btn.textContent = '📞 Call';
