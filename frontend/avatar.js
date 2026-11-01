@@ -114,6 +114,9 @@ async function installRiyaApron() {
   const white = new THREE.MeshStandardMaterial({
     color: 0xf4f0e7, roughness: 0.82, metalness: 0, side: THREE.DoubleSide,
   });
+  const black = new THREE.MeshStandardMaterial({
+    color: 0x17171b, roughness: 0.78, metalness: 0, side: THREE.DoubleSide,
+  });
   const add = (parent, geometry, material, position) => {
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(...position);
@@ -130,6 +133,8 @@ async function installRiyaApron() {
   skirtShape.closePath();
   add(hips, new THREE.ShapeGeometry(skirtShape, 16), white, [0, -0.025, 0.145]);
 
+  add(hips, new THREE.BoxGeometry(0.34, 0.045, 0.025), black, [0, 0.015, 0.145]);
+
   const bibShape = new THREE.Shape();
   bibShape.moveTo(-0.115, -0.19);
   bibShape.lineTo(0.115, -0.19);
@@ -137,6 +142,16 @@ async function installRiyaApron() {
   bibShape.quadraticCurveTo(0, 0.085, -0.13, 0.055);
   bibShape.closePath();
   add(chest, new THREE.ShapeGeometry(bibShape, 12), white, [0, -0.10, 0.125]);
+
+  // Restore the original dark shoulder straps from the earlier RIYA look.
+  for (const side of [-1, 1]) {
+    const curve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(side * 0.12, -0.045, 0.135),
+      new THREE.Vector3(side * 0.115, 0.07, 0.105),
+      new THREE.Vector3(side * 0.09, 0.19, 0.055),
+    ]);
+    add(chest, new THREE.TubeGeometry(curve, 12, 0.012, 6, false), black, [0, 0, 0]);
+  }
 
 }
 
