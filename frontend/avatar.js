@@ -254,13 +254,10 @@ if (mount) {
           refreshBodyShapeTargets();
           const compatibility = avatarCompatibilityReport();
           console.info('RIYA imported GLB compatibility:', compatibility);
-          if (!compatibility.fullBodyMotion || !compatibility.breastMorphs.length) {
-            showCallStatus(
-              'GLB loaded. ' +
-              (!compatibility.fullBodyMotion ? 'Full-body motion needs Mixamo-style leg bones. ' : '') +
-              (!compatibility.breastMorphs.length ? 'No breast/bust morphs detected.' : '')
-            );
-          }
+          const compatibilityNotes = [
+            !compatibility.fullBodyMotion ? 'Full-body motion needs Mixamo-style leg bones.' : '',
+            !compatibility.breastMorphs.length ? 'No breast/bust morphs detected.' : '',
+          ].filter(Boolean).join(' ');
           if (window.RIYA_BODY_SHAPE) setBodyShape(window.RIYA_BODY_SHAPE);
           let savedOnDevice = false;
           try {
@@ -276,9 +273,12 @@ if (mount) {
           if (previousObjectUrl) URL.revokeObjectURL(previousObjectUrl);
           if (avatarResetButton) avatarResetButton.disabled = false;
           setState('custom avatar ready');
-          showCallStatus(savedOnDevice
-            ? 'Custom avatar saved on this device; it will return after refresh'
-            : 'Custom avatar loaded for this session; local storage was unavailable');
+          showCallStatus(
+            (savedOnDevice
+              ? 'Custom avatar saved on this device; it will return after refresh.'
+              : 'Custom avatar loaded for this session; local storage was unavailable.') +
+            (compatibilityNotes ? ' ' + compatibilityNotes : '')
+          );
         } catch (loadError) {
           URL.revokeObjectURL(nextUrl);
           console.warn('RIYA custom GLB could not be loaded:', loadError);
