@@ -2,7 +2,12 @@
 const API_BASE = 'https://riya-api-plnn.onrender.com';
 const WORKLET = 'https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/modules/headworklet.mjs';
 const MODEL = 'https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/model-en-mixed.bin';
-const AVATAR = 'https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@1.8/avatars/brunette.glb';
+const DEFAULT_AVATAR = 'https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@1.8/avatars/brunette.glb';
+// A production character can be supplied without changing the avatar runtime.
+// Set window.RIYA_AVATAR_URL before avatar.js loads; incompatible models fall back safely.
+const AVATAR = typeof window.RIYA_AVATAR_URL === 'string' && window.RIYA_AVATAR_URL.trim()
+  ? window.RIYA_AVATAR_URL.trim()
+  : DEFAULT_AVATAR;
 
 const mount = document.getElementById('scene');
 const fallback = document.getElementById('avatarFallback');
@@ -55,12 +60,19 @@ if (mount) {
       avatarSpeakingEyeContact: 0.8,
     });
 
-    await head.showAvatar({
-      url: AVATAR,
+    const avatarOptions = {
       body: 'F',
       avatarMood: 'neutral',
       lipsyncLang: 'en',
-    });
+    };
+    try {
+      await head.showAvatar({ ...avatarOptions, url: AVATAR });
+    } catch (customAvatarError) {
+      if (AVATAR === DEFAULT_AVATAR) throw customAvatarError;
+      console.warn('Configured RIYA character could not load; restoring the bundled demo avatar:', customAvatarError);
+      setState('restoring demo avatar');
+      await head.showAvatar({ ...avatarOptions, url: DEFAULT_AVATAR });
+    }
 
     window.riyaHead = head;
     window.riyaApplyAction = (action = {}) => {
