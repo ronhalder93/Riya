@@ -88,6 +88,42 @@ function speak(text) {
   speechSynthesis.speak(utterance);
 }
 
+async function fetchWithRetry(url, options, retries = 1) {
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      const response = await fetch(url, options);
+      if (response.status >= 500 && attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, 900 * (attempt + 1)));
+        continue;
+      }
+      return response;
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, 900 * (attempt + 1)));
+      }
+    }
+  }
+  throw lastError || new Error('RIYA server is unavailable');
+}
+
+async function getAvatarAction(message, reply, history) {
+  try {
+    const response = await fetchWithRetry(API_BASE + '/api/avatar-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, reply, history }),
+    }, 1);
+    if (!response.ok) throw new Error('Avatar action API ' + response.status);
+    const action = await response.json();
+    if (!action || typeof action !== 'object') throw new Error('Invalid avatar action');
+    return action;
+  } catch {
+    return inferLocalAvatarAction(message, reply);
+  }
+}
+
 async function sendMessage(text) {
   const clean = text.trim();
   if (!clean && !attachments.length) return;
@@ -112,7 +148,7 @@ async function sendMessage(text) {
   setAvatarState('thinking');
 
   try {
-    const response = await fetch(API_BASE + '/api/chat', {
+    const response = await fetchWithRetry(API_BASE + '/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -124,9 +160,8 @@ async function sendMessage(text) {
     const data = await response.json();
     addMessage(data.reply, 'assistant');
     saveHistory(data.reply, 'assistant');
-    // Keep avatar reactions local: one chat message now costs one AI request,
-    // rather than a second OpenRouter request for mood/gesture planning.
-    const action = inferLocalAvatarAction(clean, data.reply);
+    // Use the backend conversation-aware director; fall back locally only if it is unavailable.
+    const action = await getAvatarAction(clean, data.reply, [...history, { role: 'user', content: clean }, { role: 'assistant', content: data.reply }]);
     if (window.riyaApplyAction) window.riyaApplyAction(action);
     else window.riyaPendingAction = action;
     if (Number.isFinite(action.move_x) && Number.isFinite(action.move_z)) {
@@ -140,7 +175,7 @@ async function sendMessage(text) {
       Math.min(5000, Math.max(1400, data.reply.length * 28))
     );
   } catch {
-    const reply = 'I can’t reach the RIYA server right now. Please try again in a moment.';
+    const reply = 'RIYA server se abhi connection nahi ho pa raha. Thodi der baad dobara try karo.';
     addMessage(reply, 'assistant');
     saveHistory(reply, 'assistant');
     speak(reply);
