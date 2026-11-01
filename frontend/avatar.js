@@ -847,3 +847,9 @@ function scheduleIdleAttention() {
 }
 document.addEventListener('visibilitychange', scheduleIdleAttention);
 scheduleIdleAttention();
+
+
+// Mount the optional consent-gated interaction panel after the avatar module initializes.
+import('./riya-interactions.js').then(({ mountRiyaInteractions }) => {
+  if (document.body) mountRiyaInteractions();
+}).catch((error) => console.warn('RIYA interaction controls unavailable:', error));
