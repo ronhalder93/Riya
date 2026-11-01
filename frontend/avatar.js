@@ -270,6 +270,34 @@ if (mount) {
     }
 
     window.riyaHead = head;
+
+    // RIYA GLB stores clothing as named material primitives on a shared skinned
+    // mesh, not as Ready Player Me Outfit meshes. Hide only the jacket materials;
+    // keep the silk blouse and trousers visible.
+    const jacketMaterials = new Map();
+    head.armature?.traverse?.((node) => {
+      if (!node.isMesh || !node.material) return;
+      const materials = Array.isArray(node.material) ? node.material : [node.material];
+      materials.forEach((material) => {
+        if (/^(suit jacket|suit buttons)$/i.test(String(material.name || '').trim())) {
+          if (!jacketMaterials.has(material)) jacketMaterials.set(material, material.visible !== false);
+        }
+      });
+    });
+    window.riyaSetJacketVisible = (visible) => {
+      if (typeof visible !== 'boolean') return false;
+      if (!jacketMaterials.size) {
+        showCallStatus('Jacket material was not found in this avatar');
+        return false;
+      }
+      jacketMaterials.forEach((originalVisible, material) => {
+        material.visible = visible ? originalVisible : false;
+        material.needsUpdate = true;
+      });
+      showCallStatus(visible ? 'Jacket shown' : 'Jacket hidden; blouse remains on');
+      return true;
+    };
+    console.info('[riya] jacket materials:', [...jacketMaterials].map(([material]) => material.name));
     window.riyaApplyAction = (action = {}) => {
       if (!head) return;
       const moods = ['neutral', 'happy', 'angry', 'sad', 'fear', 'disgust', 'love', 'sleep'];
@@ -848,8 +876,3 @@ function scheduleIdleAttention() {
 document.addEventListener('visibilitychange', scheduleIdleAttention);
 scheduleIdleAttention();
 
-
-// Mount the optional consent-gated interaction panel after the avatar module initializes.
-import('./riya-interactions.js').then(({ mountRiyaInteractions }) => {
-  if (document.body) mountRiyaInteractions();
-}).catch((error) => console.warn('RIYA interaction controls unavailable:', error));
