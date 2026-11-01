@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RIYA Avatar Check</title>
+<style>
+body{margin:0;padding:24px;background:#151821;color:#f5f5f7;font:16px/1.5 system-ui,sans-serif}main{max-width:760px;margin:auto}.panel{background:#222735;border-radius:14px;padding:18px;margin:16px 0}button{padding:12px 18px;border:0;border-radius:9px;font-weight:700}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#10131a;padding:14px;border-radius:9px;max-height:60vh;overflow:auto}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js/+esm","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}</script>
+</head>
+<body><main>
+<h1>RIYA avatar check</h1>
+<p>This page checks the existing model in your browser. It does not modify or upload the model.</p>
+<section class="panel"><strong id="status">Loading RIYA model…</strong><p>When complete, tap Copy report and paste it in this chat.</p><button id="copy" disabled>Copy report</button></section>
+<section class="panel"><pre id="report">Starting inspection…</pre></section>
+</main>
+<script type="module">
+const status=document.querySelector('#status'),reportBox=document.querySelector('#report'),copy=document.querySelector('#copy');
+async function run(){
+ try{
+  const [{GLTFLoader},THREE]=await Promise.all([import('three/addons/loaders/GLTFLoader.js'),import('three')]);
+  const gltf=await new GLTFLoader().loadAsync('./avatars/RIYA.glb'),root=gltf.scene;
+  const meshes=[],bones=[],morphs=new Set(),materials=new Set();let vertices=0,triangles=0;
+  const box=new THREE.Box3().setFromObject(root),size=box.getSize(new THREE.Vector3());
+  root.traverse(n=>{
+   if(n.isBone)bones.push(n.name);
+   if(n.isMesh){
+    const count=n.geometry?.attributes?.position?.count||0,targets=Object.keys(n.morphTargetDictionary||{});
+    vertices+=count;triangles+=n.geometry?.index?n.geometry.index.count/3:count/3;targets.forEach(x=>morphs.add(x));
+    for(const m of (Array.isArray(n.material)?n.material:[n.material]))if(m)materials.add(m.name||'(unnamed)');
+    meshes.push({name:n.name,vertices:count,skinned:!!n.isSkinnedMesh,morphTargets:targets});
+   }
+  });
+  const data={loaded:true,dimensions:{x:+size.x.toFixed(4),y:+size.y.toFixed(4),z:+size.z.toFixed(4)},totals:{meshes:meshes.length,vertices,triangles:Math.round(triangles),bones:bones.length,morphTargets:morphs.size},breastOrBustMorphs:[...morphs].filter(x=>/breast|bust|chest|boob|cleavage/i.test(x)),allMorphTargets:[...morphs].sort(),bones,materials:[...materials],meshes};
+  const output=JSON.stringify(data,null,2);status.textContent='Inspection complete — RIYA model loaded.';reportBox.textContent=output;copy.disabled=false;
+  copy.onclick=async()=>{try{await navigator.clipboard.writeText(output);copy.textContent='Copied — paste it here';}catch{copy.textContent='Select the report below and copy it';}};
+ }catch(e){status.textContent='Could not load the model: '+e.message;reportBox.textContent=String(e.stack||e);}
+}
+run();
+</script>
+</body></html>
