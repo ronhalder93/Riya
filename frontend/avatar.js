@@ -201,7 +201,8 @@ if (mount) {
 if (mount) {
   setState('loading');
   try {
-    const { TalkingHead } = await import('talkinghead');
+    showCallStatus('Starting 3D engine…');
+    const { TalkingHead } = await withTimeout(import('talkinghead'), 20000, '3D engine download');
     head = new TalkingHead(mount, {
       lipsyncModules: ['en'],
       cameraView: 'full',
@@ -219,7 +220,7 @@ if (mount) {
     };
     let initialAvatarUrl = AVATAR;
     try {
-      const savedAvatarBlob = await readSavedAvatar();
+      const savedAvatarBlob = await withTimeout(readSavedAvatar(), 8000, 'Saved avatar storage');
       if (savedAvatarBlob instanceof Blob) {
         savedAvatarObjectUrl = URL.createObjectURL(savedAvatarBlob);
         initialAvatarUrl = savedAvatarObjectUrl;
@@ -230,7 +231,8 @@ if (mount) {
 
     let activeAvatarUrl = initialAvatarUrl;
     try {
-      await head.showAvatar({ ...avatarOptions, url: initialAvatarUrl });
+      showCallStatus('Loading RIYA 3D model…');
+      await withTimeout(head.showAvatar({ ...avatarOptions, url: initialAvatarUrl }), 60000, 'RIYA 3D model loading');
     } catch (initialAvatarError) {
       console.warn('Saved/configured RIYA avatar could not load:', initialAvatarError);
       if (savedAvatarObjectUrl) {
@@ -242,18 +244,21 @@ if (mount) {
       }
       if (initialAvatarUrl !== AVATAR) {
         try {
-          await head.showAvatar({ ...avatarOptions, url: AVATAR });
+          showCallStatus('RIYA model did not respond; trying the demo avatar…');
+          await withTimeout(head.showAvatar({ ...avatarOptions, url: AVATAR }), 60000, 'RIYA model loading');
           activeAvatarUrl = AVATAR;
         } catch (configuredAvatarError) {
           console.warn('Configured RIYA avatar could not load; restoring the bundled demo avatar:', configuredAvatarError);
           setState('restoring demo avatar');
-          await head.showAvatar({ ...avatarOptions, url: DEFAULT_AVATAR });
+          showCallStatus('Loading backup demo avatar…');
+          await withTimeout(head.showAvatar({ ...avatarOptions, url: DEFAULT_AVATAR }), 45000, 'Backup avatar loading');
           activeAvatarUrl = DEFAULT_AVATAR;
         }
       } else if (AVATAR !== DEFAULT_AVATAR) {
         console.warn('Configured RIYA avatar could not load; restoring the bundled demo avatar.');
         setState('restoring demo avatar');
-        await head.showAvatar({ ...avatarOptions, url: DEFAULT_AVATAR });
+        showCallStatus('Loading backup demo avatar…');
+        await withTimeout(head.showAvatar({ ...avatarOptions, url: DEFAULT_AVATAR }), 45000, 'Backup avatar loading');
         activeAvatarUrl = DEFAULT_AVATAR;
       } else {
         throw initialAvatarError;
