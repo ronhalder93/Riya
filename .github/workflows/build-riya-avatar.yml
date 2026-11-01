@@ -1,0 +1,50 @@
+name: Build RIYA 3D character
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - frontend/avatars/RIYA.glb
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build-character:
+    if: ${{ !contains(github.event.head_commit.message, '[skip avatar build]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out RIYA
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Get open-source character generator
+        run: git clone --depth 1 https://github.com/olatunde85/3d-gen.git "$RUNNER_TEMP/3d-gen"
+      - name: Install generator
+        working-directory: ${{ runner.temp }}/3d-gen
+        run: npm install --no-audit --no-fund
+      - name: Prepare CC0 human assets
+        working-directory: ${{ runner.temp }}/3d-gen
+        run: |
+          # Motion-capture downloads are not needed for this rigged, expression-ready avatar.
+          sed -i 's/^await fetchMocap();/\/\/ Skipped: no source motion clips are needed for RIYA./' scripts/setup-assets.ts
+          npm run setup-assets
+      - name: Generate RIYA GLB
+        working-directory: ${{ runner.temp }}/3d-gen
+        run: |
+          npm run export -- --params "$GITHUB_WORKSPACE/frontend/avatars/riya.params.json" --formats glb --detail high --out "$RUNNER_TEMP/riya-export"
+          test -s "$RUNNER_TEMP/riya-export/RIYA.glb"
+      - name: Save model in RIYA
+        run: |
+          mkdir -p frontend/avatars
+          cp "$RUNNER_TEMP/riya-export/RIYA.glb" frontend/avatars/RIYA.glb
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/avatars/RIYA.glb
+          if ! git diff --cached --quiet; then
+            git commit -m "[skip avatar build] Generate RIYA 3D character"
+            git push
+          fi
