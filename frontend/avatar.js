@@ -226,7 +226,7 @@ if (mount) {
 
       // Conversation-selected procedural poses. These use the existing rig and
       // blend gently rather than pretending unavailable animation clips exist.
-      const poseWeight = Math.min(1, step * 5);
+      const poseWeight = 1;
       const wavePulse = Math.sin(bodyMotionPhase * 2.8);
       const setPose = (name, rx = 0, ry = 0, rz = 0) => {
         const base = motionBones.get(name);
