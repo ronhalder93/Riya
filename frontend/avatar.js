@@ -60,6 +60,7 @@ if (mount) {
       avatarSpeakingEyeContact: 0.8,
     });
 
+    let activeAvatarUrl = AVATAR;
     const avatarOptions = {
       body: 'F',
       avatarMood: 'neutral',
@@ -72,6 +73,7 @@ if (mount) {
       console.warn('Configured RIYA character could not load; restoring the bundled demo avatar:', customAvatarError);
       setState('restoring demo avatar');
       await head.showAvatar({ ...avatarOptions, url: DEFAULT_AVATAR });
+      activeAvatarUrl = DEFAULT_AVATAR;
     }
 
     window.riyaHead = head;
@@ -98,6 +100,57 @@ if (mount) {
     };
     if (fallback) fallback.classList.add('hidden');
     setState('ready');
+
+    // Let the user preview a locally supplied GLB without committing a large,
+    // potentially licensed character asset to the repository.
+    const avatarFileInput = document.getElementById('avatarFileInput');
+    const avatarUploadButton = document.getElementById('avatarUploadButton');
+    let selectedAvatarUrl = activeAvatarUrl;
+    let selectedAvatarObjectUrl = null;
+    if (avatarUploadButton && avatarFileInput) {
+      avatarUploadButton.addEventListener('click', () => avatarFileInput.click());
+      avatarFileInput.addEventListener('change', async () => {
+        const file = avatarFileInput.files?.[0];
+        avatarFileInput.value = '';
+        if (!file) return;
+        if (!file.name.toLowerCase().endsWith('.glb') || file.size > 100 * 1024 * 1024) {
+          showCallStatus('Choose a GLB file smaller than 100 MB');
+          return;
+        }
+        const nextUrl = URL.createObjectURL(file);
+        avatarUploadButton.disabled = true;
+        setState('loading custom avatar');
+        showCallStatus('Loading selected 3D avatar…');
+        try {
+          await head.showAvatar({ ...avatarOptions, url: nextUrl });
+          refreshMotionBones();
+          const previousObjectUrl = selectedAvatarObjectUrl;
+          selectedAvatarObjectUrl = nextUrl;
+          selectedAvatarUrl = nextUrl;
+          if (previousObjectUrl) URL.revokeObjectURL(previousObjectUrl);
+          setState('custom avatar ready');
+          showCallStatus('Custom avatar loaded for this session');
+        } catch (loadError) {
+          URL.revokeObjectURL(nextUrl);
+          console.warn('RIYA custom GLB could not be loaded:', loadError);
+          try {
+            await head.showAvatar({ ...avatarOptions, url: selectedAvatarUrl });
+            refreshMotionBones();
+            setState(selectedAvatarUrl === DEFAULT_AVATAR ? 'ready' : 'custom avatar ready');
+            showCallStatus('That GLB was not compatible; previous avatar restored');
+          } catch (restoreError) {
+            console.error('RIYA avatar restore failed:', restoreError);
+            setState('avatar error');
+            showCallStatus('Avatar could not be restored. Refresh the page.');
+          }
+        } finally {
+          avatarUploadButton.disabled = false;
+        }
+      });
+    }
+    window.addEventListener('beforeunload', () => {
+      if (selectedAvatarObjectUrl) URL.revokeObjectURL(selectedAvatarObjectUrl);
+    }, { once: true });
 
     // Audio-driven lip sync is optional: never let an add-on failure hide the avatar.
     try {
@@ -128,18 +181,23 @@ if (mount) {
       'RightUpLeg', 'RightLeg', 'RightFoot',
     ];
     const motionBones = new Map();
-    motionBoneNames.forEach((name) => {
-      const bone = head.armature?.getObjectByName(name);
-      if (bone) {
-        motionBones.set(name, {
-          bone,
-          position: bone.position.clone(),
-          rotation: bone.rotation.clone(),
-        });
-      }
-    });
-    const hasLegRig = ['Hips', 'LeftUpLeg', 'LeftLeg', 'RightUpLeg', 'RightLeg']
-      .every((name) => motionBones.has(name));
+    let hasLegRig = false;
+    function refreshMotionBones() {
+      motionBones.clear();
+      motionBoneNames.forEach((name) => {
+        const bone = head.armature?.getObjectByName(name);
+        if (bone) {
+          motionBones.set(name, {
+            bone,
+            position: bone.position.clone(),
+            rotation: bone.rotation.clone(),
+          });
+        }
+      });
+      hasLegRig = ['Hips', 'LeftUpLeg', 'LeftLeg', 'RightUpLeg', 'RightLeg']
+        .every((name) => motionBones.has(name));
+    }
+    refreshMotionBones();
     let bodyMotion = 'idle';
         let bodyMotionBlend = 0;
     let bodyMotionPhase = 0;
