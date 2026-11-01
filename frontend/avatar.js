@@ -60,6 +60,7 @@ if (mount) {
       avatarSpeakingEyeContact: 0.8,
     });
 
+    let activeAvatarUrl = AVATAR;
     const avatarOptions = {
       body: 'F',
       avatarMood: 'neutral',
@@ -72,6 +73,7 @@ if (mount) {
       console.warn('Configured RIYA character could not load; restoring the bundled demo avatar:', customAvatarError);
       setState('restoring demo avatar');
       await head.showAvatar({ ...avatarOptions, url: DEFAULT_AVATAR });
+      activeAvatarUrl = DEFAULT_AVATAR;
     }
 
     window.riyaHead = head;
@@ -103,7 +105,7 @@ if (mount) {
     // potentially licensed character asset to the repository.
     const avatarFileInput = document.getElementById('avatarFileInput');
     const avatarUploadButton = document.getElementById('avatarUploadButton');
-    let selectedAvatarUrl = AVATAR;
+    let selectedAvatarUrl = activeAvatarUrl;
     let selectedAvatarObjectUrl = null;
     if (avatarUploadButton && avatarFileInput) {
       avatarUploadButton.addEventListener('click', () => avatarFileInput.click());
