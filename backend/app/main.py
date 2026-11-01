@@ -45,6 +45,7 @@ class AvatarActionResponse(BaseModel):
     gaze: str = "camera"
     gesture: str = "none"
     body: str = "idle"
+    pose: str = "natural"
     move_x: float | None = None
     move_z: float | None = None
 
@@ -97,6 +98,7 @@ async def avatar_action(payload: AvatarActionRequest):
         "kiss", "heart",
     }
     allowed_body = {"idle", "walk", "sit"}
+    allowed_poses = {"natural", "wave", "thinking", "open_arms", "cross_arms", "dance", "lean_in", "nod"}
     context = []
     for item in payload.history[-8:]:
         if isinstance(item, dict) and item.get("role") in {"user", "assistant"}:
@@ -126,7 +128,10 @@ async def avatar_action(payload: AvatarActionRequest):
         "Only set coordinates when movement is clearly intended; otherwise use null. The room is a "
         "photographic backdrop with bounded avatar-root translation, not a fully collision-aware 3D room. "
         "Never claim unsupported actions such as real object interaction, dancing, or a physical hug. "
-        "Return ONLY JSON with keys mood,gaze,gesture,body,move_x,move_z. "
+        "Choose a subtle full-body pose when useful: wave for greeting, thinking for reflection, open_arms for welcoming, "
+        "cross_arms for a reserved/considering stance, dance only when the conversation clearly invites playful celebration, "
+        "lean_in for attentive warmth, nod for agreement/listening, otherwise natural. Do not overuse poses. "
+        "Return ONLY JSON with keys mood,gaze,gesture,body,pose,move_x,move_z. "
         "mood: neutral,happy,angry,sad,fear,disgust,love,sleep. gaze: camera or forward. "
         "gesture: none,handup,index,ok,thumbup,thumbdown,side,shrug,kiss,heart. "
         "body: idle,walk,sit. Use null for move_x/move_z unless moving. For unrelated chat, choose "
@@ -165,6 +170,7 @@ async def avatar_action(payload: AvatarActionRequest):
                 gaze=gaze if gaze in allowed_gazes else "camera",
                 gesture=gesture if gesture in allowed_gestures else "none",
                 body=body if body in allowed_body else "idle",
+                pose=data.get("pose", "natural") if data.get("pose", "natural") in allowed_poses else "natural",
                 move_x=max(-0.75, min(0.75, float(data["move_x"])))
                     if isinstance(data.get("move_x"), (int, float)) else None,
                 move_z=max(-0.35, min(0.35, float(data["move_z"])))
