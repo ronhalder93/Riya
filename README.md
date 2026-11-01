@@ -148,3 +148,17 @@ Choose the RIYA LiveKit project when prompted. The deployed agent dispatch name 
 Keep `LIVEKIT_URL`, `LIVEKIT_API_KEY`, and `LIVEKIT_API_SECRET` configured as secrets in Render for the API service. Do not commit credentials or paste them into chat. The LiveKit agent deployment also needs the same three values configured as deployment secrets if the CLI prompts for them.
 
 After deployment, open the RIYA website and start a new call. The agent should join the newly created room and greet the participant. Existing text chat remains available independently.
+
+
+## Create the custom RIYA character
+
+The **Create RIYA model** button opens the open-source CharacterCreator in a new tab with a female body and long-hair preset. In its studio:
+
+1. Keep the character clearly adult; set the body sex to female and choose the long hairstyle.
+2. In the Chest controls, adjust size, firmness, height, spacing and projection to the requested naturally fuller-bust proportions.
+3. Choose a dark-and-light clothing combination (for example a dark top with a light skirt). A maid apron is not included as a ready-made garment in the upstream catalog and would need a separate fitted garment.
+4. Use the studio's Export section to export a GLB.
+
+The upstream generator is documented at https://github.com/kblood/CharacterCreator and its generated MakeHuman assets are CC0. Its generator source is GPL-3.0-or-later. Keep the upstream license notices with any copied generator code.
+
+**Integration caveat:** the exported model uses the generator's MPFB 53-bone rig, while RIYA's current TalkingHead procedural body poses expect Mixamo-style bone names. Do not overwrite the live avatar automatically. First load the exported GLB with **Load 3D avatar** and check whether TalkingHead accepts its skeleton and face morphs. If it does not, the model needs a rig/viseme retargeting step before it can replace the demo avatar or use full-body gestures. The current GLB import is a session preview, not a permanent upload.
