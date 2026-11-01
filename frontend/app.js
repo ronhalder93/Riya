@@ -65,6 +65,11 @@ function inferLocalAvatarAction(message, reply) {
     action.gesture = 'thumbup';
   }
 
+  if (/\b(hello|hi|hey|namaste|नमस्ते|নমস্কার)\b/i.test(text)) action.pose = 'wave';
+  else if (/\b(think|thinking|soch|सोच|ভাবছি|hmm)\b/i.test(text)) action.pose = 'thinking';
+  else if (/\b(dance|nach|नाच|নাচ)\b/i.test(text)) action.pose = 'dance';
+  else if (/\b(welcome|hug|स्वागत|স্বাগতম)\b/i.test(text)) action.pose = 'open_arms';
+
   if (/\b(sit|baith|बैठ|বসো)\b/i.test(text)) action.body = 'sit';
   else if (/\b(walk|come here|come closer|idhar aao|पास आ|এদিকে এসো)\b/i.test(text)) {
     action.body = 'walk';
