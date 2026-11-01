@@ -256,3 +256,13 @@ html, body {
   padding: 6px 12px;
   font-size: 12px;
 }
+
+
+/* Local GLB import is a user-controlled preview; no model is uploaded to a server. */
+#avatarUploadButton:disabled { opacity: .55; cursor: wait; }
+#avatarFileInput { display: none; }
+@media (max-width: 640px) {
+  .hud { gap: 7px; padding-inline: 9px; }
+  #avatarUploadButton { padding: 6px 8px; font-size: 11px; }
+  #chatHistoryToggle { padding: 6px 8px; font-size: 11px; }
+}
