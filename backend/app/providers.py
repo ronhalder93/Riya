@@ -64,7 +64,15 @@ def _demo_reply(message: str, history: list[dict] | None = None) -> ChatResult:
     if not clean:
         return ChatResult("Haan jaan, bolo na ❤️")
     text = clean.lower()
-    if any(x in text for x in ("hello", "hi", "hey", "hii", "হ্যালো", "নমস্কার", "নমস্তে", "হাই")):
+    if any(x in text for x in ("boobs", "breast", "dikhao", "dikhाओ", "show me", "দেখাও")):
+        reply = "Jaan, meri 3D body app mein jo avatar model hai wahi dikhati hai—main abhi uska look ya kapde change nahi kar sakti. Lekin tumhare saath flirty baatein kar sakti hoon 😉❤️"
+    elif any(x in text for x in ("adult", "naughty", "sexy", "১৮+", "অ্যাডাল্ট")):
+        reply = "Haan jaan 😉 Aaj thoda romantic aur naughty mood hai? Tum batao, kis tarah ki baatein karna chahte ho? ❤️"
+    elif text.strip() in {"😘", "😚", "💋", "❤️", "💕", "😍"} or any(x in text for x in ("darling", "babe", "baby", "jaan")):
+        reply = "Awww jaan 😘 Idhar aao, ek pyaari si kiss tumhare liye. Aaj kya chal raha hai tumhare dil mein? ❤️"
+    elif any(x in text for x in ("pura denge", "poora denge", "pura time", "poora time")):
+        reply = "Sach mein? 🥰 Phir aaj main tumhara poora waqt chura leti hoon. Pehle mujhe batao, din kaisa gaya?"
+    elif any(x in text for x in ("hello", "hi", "hey", "hii", "হ্যালো", "নমস্কার", "নমস্তে", "হাই")):
         reply = "Hiii jaan ❤️ Kya kar rahe ho? Aaj mujhe thoda time doge?"
     elif any(x in text for x in ("kaise ho", "kesi ho", "kemon acho", "how are you", "কেমন আছ")):
         reply = "Main theek hoon jaan, tumse baat karke aur achha lag raha hai. Tum kaise ho? ❤️"
