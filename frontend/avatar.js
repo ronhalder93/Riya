@@ -123,6 +123,7 @@ if (mount) {
         showCallStatus('Loading selected 3D avatar…');
         try {
           await head.showAvatar({ ...avatarOptions, url: nextUrl });
+          refreshMotionBones();
           const previousObjectUrl = selectedAvatarObjectUrl;
           selectedAvatarObjectUrl = nextUrl;
           selectedAvatarUrl = nextUrl;
@@ -134,6 +135,7 @@ if (mount) {
           console.warn('RIYA custom GLB could not be loaded:', loadError);
           try {
             await head.showAvatar({ ...avatarOptions, url: selectedAvatarUrl });
+            refreshMotionBones();
             setState(selectedAvatarUrl === DEFAULT_AVATAR ? 'ready' : 'custom avatar ready');
             showCallStatus('That GLB was not compatible; previous avatar restored');
           } catch (restoreError) {
@@ -179,18 +181,23 @@ if (mount) {
       'RightUpLeg', 'RightLeg', 'RightFoot',
     ];
     const motionBones = new Map();
-    motionBoneNames.forEach((name) => {
-      const bone = head.armature?.getObjectByName(name);
-      if (bone) {
-        motionBones.set(name, {
-          bone,
-          position: bone.position.clone(),
-          rotation: bone.rotation.clone(),
-        });
-      }
-    });
-    const hasLegRig = ['Hips', 'LeftUpLeg', 'LeftLeg', 'RightUpLeg', 'RightLeg']
-      .every((name) => motionBones.has(name));
+    let hasLegRig = false;
+    function refreshMotionBones() {
+      motionBones.clear();
+      motionBoneNames.forEach((name) => {
+        const bone = head.armature?.getObjectByName(name);
+        if (bone) {
+          motionBones.set(name, {
+            bone,
+            position: bone.position.clone(),
+            rotation: bone.rotation.clone(),
+          });
+        }
+      });
+      hasLegRig = ['Hips', 'LeftUpLeg', 'LeftLeg', 'RightUpLeg', 'RightLeg']
+        .every((name) => motionBones.has(name));
+    }
+    refreshMotionBones();
     let bodyMotion = 'idle';
         let bodyMotionBlend = 0;
     let bodyMotionPhase = 0;
