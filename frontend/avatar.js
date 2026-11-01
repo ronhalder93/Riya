@@ -257,7 +257,8 @@ if (mount) {
       } else if (AVATAR !== DEFAULT_AVATAR) {
         console.warn('Configured RIYA avatar could not load; restoring the bundled demo avatar.');
         setState('restoring demo avatar');
-        await head.showAvatar({ ...avatarOptions, url: DEFAULT_AVATAR });
+        showCallStatus('Loading backup demo avatar…');
+        await withTimeout(head.showAvatar({ ...avatarOptions, url: DEFAULT_AVATAR }), 45000, 'Backup avatar loading');
         activeAvatarUrl = DEFAULT_AVATAR;
       } else {
         throw initialAvatarError;
