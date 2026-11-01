@@ -131,6 +131,15 @@ if (mount) {
           await head.showAvatar({ ...avatarOptions, url: nextUrl });
           refreshMotionBones();
           refreshBodyShapeTargets();
+          const compatibility = avatarCompatibilityReport();
+          console.info('RIYA imported GLB compatibility:', compatibility);
+          if (!compatibility.fullBodyMotion || !compatibility.breastMorphs.length) {
+            showCallStatus(
+              'GLB loaded. ' +
+              (!compatibility.fullBodyMotion ? 'Full-body motion needs Mixamo-style leg bones. ' : '') +
+              (!compatibility.breastMorphs.length ? 'No breast/bust morphs detected.' : '')
+            );
+          }
           if (window.RIYA_BODY_SHAPE) setBodyShape(window.RIYA_BODY_SHAPE);
           const previousObjectUrl = selectedAvatarObjectUrl;
           selectedAvatarObjectUrl = nextUrl;
@@ -244,6 +253,33 @@ if (mount) {
       return result;
     }
     refreshBodyShapeTargets();
+
+    // Report what this GLB actually supports so users know whether proportions
+    // and full-body procedural motion will work before treating it as final.
+    function avatarCompatibilityReport() {
+      const requiredBones = ['Hips', 'LeftUpLeg', 'LeftLeg', 'RightUpLeg', 'RightLeg'];
+      const presentBones = requiredBones.filter((name) => head.armature?.getObjectByName(name));
+      const morphNames = [...new Set(bodyShapeTargets.map((target) => target.name))];
+      const breastMorphs = morphNames.filter((name) => /breast|bust|chest/.test(name));
+      return {
+        fullBodyMotion: presentBones.length === requiredBones.length,
+        compatibleLegBones: presentBones,
+        requiredLegBones: requiredBones,
+        breastMorphs,
+        morphTargets: morphNames,
+      };
+    }
+    window.riyaAvatarCompatibility = avatarCompatibilityReport;
+    const initialCompatibility = avatarCompatibilityReport();
+    console.info('RIYA avatar compatibility:', initialCompatibility);
+    if (!initialCompatibility.fullBodyMotion || !initialCompatibility.breastMorphs.length) {
+      showCallStatus(
+        'Avatar loaded; ' +
+        (!initialCompatibility.fullBodyMotion ? 'full-body motion needs Mixamo-style leg bones. ' : '') +
+        (!initialCompatibility.breastMorphs.length ? 'No breast/bust morphs found; body-shape control unavailable.' : '')
+      );
+    }
+
     window.riyaSetBodyShape = setBodyShape;
     window.riyaBodyShapeStatus = () => ({
       availableMorphTargets: bodyShapeTargets.map((target) => target.name),
