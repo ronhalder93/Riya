@@ -1,8 +1,4 @@
 
-    if (window.riyaPendingAction) {
-      window.riyaApplyAction(window.riyaPendingAction);
-      delete window.riyaPendingAction;
-    }
 const API_BASE = 'https://riya-api-plnn.onrender.com';
 const WORKLET = 'https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/modules/headworklet.mjs';
 const MODEL = 'https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/model-en-mixed.bin';
@@ -169,6 +165,11 @@ if (mount) {
       }
       return false;
     };
+
+    if (window.riyaPendingAction) {
+      window.riyaApplyAction(window.riyaPendingAction);
+      delete window.riyaPendingAction;
+    }
 
     function updateBodyMotion(dt) {
       if (!hasLegRig || !head?.armature) return;
