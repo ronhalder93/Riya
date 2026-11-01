@@ -124,6 +124,8 @@ if (mount) {
         try {
           await head.showAvatar({ ...avatarOptions, url: nextUrl });
           refreshMotionBones();
+          refreshBodyShapeTargets();
+          if (window.RIYA_BODY_SHAPE) setBodyShape(window.RIYA_BODY_SHAPE);
           const previousObjectUrl = selectedAvatarObjectUrl;
           selectedAvatarObjectUrl = nextUrl;
           selectedAvatarUrl = nextUrl;
@@ -136,6 +138,8 @@ if (mount) {
           try {
             await head.showAvatar({ ...avatarOptions, url: selectedAvatarUrl });
             refreshMotionBones();
+            refreshBodyShapeTargets();
+            if (window.RIYA_BODY_SHAPE) setBodyShape(window.RIYA_BODY_SHAPE);
             setState(selectedAvatarUrl === DEFAULT_AVATAR ? 'ready' : 'custom avatar ready');
             showCallStatus('That GLB was not compatible; previous avatar restored');
           } catch (restoreError) {
@@ -198,6 +202,52 @@ if (mount) {
         .every((name) => motionBones.has(name));
     }
     refreshMotionBones();
+
+    // Apply body proportions only through authored morph targets. Never scale the
+    // chest mesh or skeleton directly: that distorts clothing and skin weights.
+    const bodyShapeTargets = [];
+    const bodyShapeAliases = {
+      breastFullness: ['breast', 'bust', 'chest'],
+      waist: ['waist'],
+      hips: ['hip'],
+    };
+    function refreshBodyShapeTargets() {
+      bodyShapeTargets.length = 0;
+      head.armature?.traverse?.((node) => {
+        const dict = node.morphTargetDictionary;
+        const influences = node.morphTargetInfluences;
+        if (!dict || !influences) return;
+        Object.entries(dict).forEach(([name, index]) => {
+          bodyShapeTargets.push({ node, name: name.toLowerCase(), index, base: influences[index] || 0 });
+        });
+      });
+    }
+    function setBodyShape(values = {}) {
+      const result = {};
+      Object.entries(bodyShapeAliases).forEach(([control, aliases]) => {
+        if (!Number.isFinite(values[control])) return;
+        const amount = Math.max(0, Math.min(1, values[control]));
+        const matches = bodyShapeTargets.filter((target) =>
+          aliases.some((alias) => target.name.includes(alias))
+        );
+        matches.forEach((target) => {
+          target.node.morphTargetInfluences[target.index] = target.base + (1 - target.base) * amount;
+        });
+        result[control] = matches.length > 0;
+      });
+      return result;
+    }
+    refreshBodyShapeTargets();
+    window.riyaSetBodyShape = setBodyShape;
+    window.riyaBodyShapeStatus = () => ({
+      availableMorphTargets: bodyShapeTargets.map((target) => target.name),
+      controls: Object.keys(bodyShapeAliases),
+    });
+    if (window.RIYA_BODY_SHAPE) {
+      const applied = setBodyShape(window.RIYA_BODY_SHAPE);
+      console.info('RIYA body shape morph application:', applied);
+    }
+
     let bodyMotion = 'idle';
         let bodyMotionBlend = 0;
     let bodyMotionPhase = 0;

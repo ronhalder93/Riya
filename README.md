@@ -110,7 +110,17 @@ The avatar loader accepts an optional custom GLB URL before `frontend/avatar.js`
 
 If the configured character fails to load in TalkingHead, RIYA automatically falls back to the current demo avatar instead of leaving the scene blank. Do not point this setting at an arbitrary GLB and assume it is compatible: validate its skeleton, skin weights, facial morph targets, materials, and animation behavior first. The current procedural body poses depend on Mixamo-style bone names and may need retargeting for a new rig.
 
-A suitable production asset should be an adult photorealistic digital human with PBR skin/hair textures, a compatible humanoid skeleton, facial blendshapes for expressions/lip sync, and separate skinned clothing meshes if outfit switching is required. The free CC0 Woman Base Mesh at https://grab3d.com/models/characters/woman-base-character/ is one possible starting point (its page advertises a rigged GLB and walk/run clips), but it is a neutral base mesh, not a finished Indian-looking RIYA character; it must be inspected, customized, and tested before replacing the live model.
+A suitable production asset should be an adult photorealistic digital human with PBR skin/hair textures, a compatible humanoid skeleton, facial blendshapes for expressions/lip sync, and separate skinned clothing meshes if outfit switching is required.
+
+For compatible GLB files that include authored body morph targets, the runtime exposes optional shape controls. Configure them before `avatar.js` loads:
+
+```html
+<script>
+  window.RIYA_BODY_SHAPE = { breastFullness: 0.7 };
+</script>
+```
+
+Or adjust the loaded avatar from the browser console with `window.riyaSetBodyShape({ breastFullness: 0.7 })`. Values are clamped to 0–1. The runtime looks for morph-target names containing breast/bust/chest (and waist/hip for those controls); it does not deform the mesh or invent missing morph targets. Check `window.riyaBodyShapeStatus()` to see which morph targets the loaded model actually provides. A visible change requires a GLB whose creator has authored suitable body-shape morphs and fitted the clothing to them. The free CC0 Woman Base Mesh at https://grab3d.com/models/characters/woman-base-character/ is one possible starting point (its page advertises a rigged GLB and walk/run clips), but it is a neutral base mesh, not a finished Indian-looking RIYA character; it must be inspected, customized, and tested before replacing the live model.
 
 ## Current limitations
 
