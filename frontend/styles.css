@@ -212,3 +212,45 @@ html, body {
 
 /* Manual Wave, Heart and Hug controls are intentionally removed. Avatar actions are chat-driven. */
 .riya-motion-controls, .riya-motion-button, button[aria-label="Wave"], button[aria-label="Heart"], button[aria-label="Hug"], button[data-action="wave"], button[data-action="heart"], button[data-action="hug"] { display: none !important; }
+
+
+/* Immersive avatar view: chat history can be tucked away without deleting it. */
+#messages.chat-hidden { display: none; }
+
+.dock {
+  background: transparent;
+  border-top: 0;
+  box-shadow: none;
+}
+
+#messageInput {
+  background: transparent;
+  border-color: rgba(255, 255, 255, .28);
+  backdrop-filter: blur(2px);
+}
+
+#messageInput::placeholder { color: rgba(255, 255, 255, .72); }
+
+#chatForm button,
+.camrow button,
+.camrow select {
+  background: transparent;
+  border-color: rgba(255, 255, 255, .28);
+  backdrop-filter: blur(2px);
+}
+
+#chatForm button[type="submit"] {
+  background: rgba(43, 108, 176, .72);
+  border-color: rgba(95, 160, 225, .8);
+}
+
+#cameraNotice { text-shadow: 0 1px 3px rgba(0, 0, 0, .75); }
+
+#chatHistoryToggle {
+  background: rgba(255, 255, 255, .12);
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, .24);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+}
