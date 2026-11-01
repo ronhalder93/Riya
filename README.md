@@ -2,7 +2,7 @@
 
 RIYA is an Android-first, installable PWA starter for a friendly AI virtual companion.
 
-> Current milestone: Phase 2 foundation. The current brunette GLB is a demo character. A photorealistic RIYA character still requires a separately licensed/customized adult character asset and compatibility testing.
+ > Current milestone: custom adult RIYA character generation. A GitHub Actions workflow builds a rigged GLB from CC0 MakeHuman assets and commits it into the frontend when the generation settings change. The frontend falls back to the bundled TalkingHead demo avatar if generation has not completed yet.
 
 ## Stack
 
@@ -91,7 +91,7 @@ RIYA is a fictional, friendly, supportive AI assistant. It should not present it
 2. Phase 2: secure OpenAI Responses API adapter (implemented; requires server-side key).
 3. Phase 3: speech input/output and basic mouth animation.
 4. Phase 4: user-controlled memory and export/delete controls.
-5. Phase 5: licensed rigged character, facial blendshapes, and optimized animations.
+5. Phase 5: generated adult RIYA character with Mixamo rig, facial expression shapes, speech visemes, and skeleton-attached apron styling (implemented; generated GLB is produced by GitHub Actions).
 6. Phase 6: optional image studio with provider limits and age-appropriate output controls.
 7. Phase 7: Android 10/device testing and performance profiling.
 8. Phase 8: Render deployment and live verification.
@@ -125,7 +125,7 @@ Or adjust the loaded avatar from the browser console with `window.riyaSetBodySha
 ## Current limitations
 
 - OpenAI replies require a valid API key and API billing/usage allowance.
-- The avatar is procedural and not a photorealistic custom model.
+- The generated RIYA GLB is a high-detail MakeHuman-based character, not a scan or a bespoke photorealistic digital-human capture.
 - Browser speech APIs are not consistently available across Android browsers.
 - No APK is included.
 
