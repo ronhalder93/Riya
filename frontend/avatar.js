@@ -9,6 +9,7 @@ const stateLabel = document.getElementById('avatarState');
 let room = null;
 let headaudio = null;
 let head = null;
+let bodyPose = 'natural';
 let Room = null;
 let RoomEvent = null;
 let Track = null;
@@ -131,8 +132,7 @@ if (mount) {
     const hasLegRig = ['Hips', 'LeftUpLeg', 'LeftLeg', 'RightUpLeg', 'RightLeg']
       .every((name) => motionBones.has(name));
     let bodyMotion = 'idle';
-    let bodyPose = 'natural';
-    let bodyMotionBlend = 0;
+        let bodyMotionBlend = 0;
     let bodyMotionPhase = 0;
     const avatarRoot = head.armature;
     const roomPosition = { x: avatarRoot.position.x, z: avatarRoot.position.z };
