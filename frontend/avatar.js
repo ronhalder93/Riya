@@ -9,6 +9,70 @@ const AVATAR = typeof window.RIYA_AVATAR_URL === 'string' && window.RIYA_AVATAR_
   ? window.RIYA_AVATAR_URL.trim()
   : DEFAULT_AVATAR;
 
+
+// Keep a user-imported GLB on this device so it survives refreshes without
+// uploading a personal character file to the server or committing it to Git.
+const AVATAR_DB_NAME = 'riya-avatar-storage';
+const AVATAR_DB_STORE = 'models';
+function openAvatarStorage() {
+  return new Promise((resolve, reject) => {
+    if (!window.indexedDB) {
+      reject(new Error('This browser does not support local avatar storage'));
+      return;
+    }
+    const request = window.indexedDB.open(AVATAR_DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains(AVATAR_DB_STORE)) {
+        request.result.createObjectStore(AVATAR_DB_STORE);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error('Could not open avatar storage'));
+  });
+}
+async function readSavedAvatar() {
+  const db = await openAvatarStorage();
+  try {
+    return await new Promise((resolve, reject) => {
+      const request = db.transaction(AVATAR_DB_STORE, 'readonly')
+        .objectStore(AVATAR_DB_STORE).get('custom');
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error || new Error('Could not read saved avatar'));
+    });
+  } finally {
+    db.close();
+  }
+}
+async function saveAvatarLocally(blob) {
+  const db = await openAvatarStorage();
+  try {
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction(AVATAR_DB_STORE, 'readwrite');
+      transaction.objectStore(AVATAR_DB_STORE).put(blob, 'custom');
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error || new Error('Could not save avatar'));
+      transaction.onabort = () => reject(transaction.error || new Error('Avatar save was cancelled'));
+    });
+  } finally {
+    db.close();
+  }
+}
+async function deleteSavedAvatar() {
+  const db = await openAvatarStorage();
+  try {
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction(AVATAR_DB_STORE, 'readwrite');
+      transaction.objectStore(AVATAR_DB_STORE).delete('custom');
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error || new Error('Could not remove saved avatar'));
+      transaction.onabort = () => reject(transaction.error || new Error('Avatar removal was cancelled'));
+    });
+  } finally {
+    db.close();
+  }
+}
+let savedAvatarObjectUrl = null;
+
 const callStatus = document.createElement('div');
 callStatus.setAttribute('role', 'status');
 callStatus.setAttribute('aria-live', 'polite');
@@ -89,20 +153,52 @@ if (mount) {
       avatarSpeakingEyeContact: 0.8,
     });
 
-    let activeAvatarUrl = AVATAR;
     const avatarOptions = {
       body: 'F',
       avatarMood: 'neutral',
       lipsyncLang: 'en',
     };
+    let initialAvatarUrl = AVATAR;
     try {
-      await head.showAvatar({ ...avatarOptions, url: AVATAR });
-    } catch (customAvatarError) {
-      if (AVATAR === DEFAULT_AVATAR) throw customAvatarError;
-      console.warn('Configured RIYA character could not load; restoring the bundled demo avatar:', customAvatarError);
-      setState('restoring demo avatar');
-      await head.showAvatar({ ...avatarOptions, url: DEFAULT_AVATAR });
-      activeAvatarUrl = DEFAULT_AVATAR;
+      const savedAvatarBlob = await readSavedAvatar();
+      if (savedAvatarBlob instanceof Blob) {
+        savedAvatarObjectUrl = URL.createObjectURL(savedAvatarBlob);
+        initialAvatarUrl = savedAvatarObjectUrl;
+      }
+    } catch (storageError) {
+      console.warn('RIYA local avatar storage is unavailable:', storageError);
+    }
+
+    let activeAvatarUrl = initialAvatarUrl;
+    try {
+      await head.showAvatar({ ...avatarOptions, url: initialAvatarUrl });
+    } catch (initialAvatarError) {
+      console.warn('Saved/configured RIYA avatar could not load:', initialAvatarError);
+      if (savedAvatarObjectUrl) {
+        try { await deleteSavedAvatar(); } catch (storageError) {
+          console.warn('Could not clear the incompatible saved avatar:', storageError);
+        }
+        URL.revokeObjectURL(savedAvatarObjectUrl);
+        savedAvatarObjectUrl = null;
+      }
+      if (initialAvatarUrl !== AVATAR) {
+        try {
+          await head.showAvatar({ ...avatarOptions, url: AVATAR });
+          activeAvatarUrl = AVATAR;
+        } catch (configuredAvatarError) {
+          console.warn('Configured RIYA avatar could not load; restoring the bundled demo avatar:', configuredAvatarError);
+          setState('restoring demo avatar');
+          await head.showAvatar({ ...avatarOptions, url: DEFAULT_AVATAR });
+          activeAvatarUrl = DEFAULT_AVATAR;
+        }
+      } else if (AVATAR !== DEFAULT_AVATAR) {
+        console.warn('Configured RIYA avatar could not load; restoring the bundled demo avatar.');
+        setState('restoring demo avatar');
+        await head.showAvatar({ ...avatarOptions, url: DEFAULT_AVATAR });
+        activeAvatarUrl = DEFAULT_AVATAR;
+      } else {
+        throw initialAvatarError;
+      }
     }
 
     window.riyaHead = head;
@@ -134,8 +230,10 @@ if (mount) {
     // potentially licensed character asset to the repository.
     const avatarFileInput = document.getElementById('avatarFileInput');
     const avatarUploadButton = document.getElementById('avatarUploadButton');
+    const avatarResetButton = document.getElementById('avatarResetButton');
     let selectedAvatarUrl = activeAvatarUrl;
-    let selectedAvatarObjectUrl = null;
+    let selectedAvatarObjectUrl = savedAvatarObjectUrl;
+    if (avatarResetButton) avatarResetButton.disabled = !selectedAvatarObjectUrl;
     if (avatarUploadButton && avatarFileInput) {
       avatarUploadButton.addEventListener('click', () => avatarFileInput.click());
       avatarFileInput.addEventListener('change', async () => {
@@ -156,20 +254,31 @@ if (mount) {
           refreshBodyShapeTargets();
           const compatibility = avatarCompatibilityReport();
           console.info('RIYA imported GLB compatibility:', compatibility);
-          if (!compatibility.fullBodyMotion || !compatibility.breastMorphs.length) {
-            showCallStatus(
-              'GLB loaded. ' +
-              (!compatibility.fullBodyMotion ? 'Full-body motion needs Mixamo-style leg bones. ' : '') +
-              (!compatibility.breastMorphs.length ? 'No breast/bust morphs detected.' : '')
-            );
-          }
+          const compatibilityNotes = [
+            !compatibility.fullBodyMotion ? 'Full-body motion needs Mixamo-style leg bones.' : '',
+            !compatibility.breastMorphs.length ? 'No breast/bust morphs detected.' : '',
+          ].filter(Boolean).join(' ');
           if (window.RIYA_BODY_SHAPE) setBodyShape(window.RIYA_BODY_SHAPE);
+          let savedOnDevice = false;
+          try {
+            await saveAvatarLocally(file);
+            savedOnDevice = true;
+          } catch (storageError) {
+            console.warn('RIYA avatar loaded but could not be saved on this device:', storageError);
+          }
           const previousObjectUrl = selectedAvatarObjectUrl;
           selectedAvatarObjectUrl = nextUrl;
           selectedAvatarUrl = nextUrl;
+          savedAvatarObjectUrl = nextUrl;
           if (previousObjectUrl) URL.revokeObjectURL(previousObjectUrl);
+          if (avatarResetButton) avatarResetButton.disabled = false;
           setState('custom avatar ready');
-          showCallStatus('Custom avatar loaded for this session');
+          showCallStatus(
+            (savedOnDevice
+              ? 'Custom avatar saved on this device; it will return after refresh.'
+              : 'Custom avatar loaded for this session; local storage was unavailable.') +
+            (compatibilityNotes ? ' ' + compatibilityNotes : '')
+          );
         } catch (loadError) {
           URL.revokeObjectURL(nextUrl);
           console.warn('RIYA custom GLB could not be loaded:', loadError);
@@ -187,6 +296,37 @@ if (mount) {
           }
         } finally {
           avatarUploadButton.disabled = false;
+        }
+      });
+    }
+    if (avatarResetButton) {
+      avatarResetButton.addEventListener('click', async () => {
+        avatarResetButton.disabled = true;
+        showCallStatus('Restoring the demo avatar…');
+        try {
+          let removedFromStorage = true;
+          try {
+            await deleteSavedAvatar();
+          } catch (storageError) {
+            removedFromStorage = false;
+            console.warn('RIYA could not remove the saved model from browser storage:', storageError);
+          }
+          await head.showAvatar({ ...avatarOptions, url: DEFAULT_AVATAR });
+          refreshMotionBones();
+          refreshBodyShapeTargets();
+          const previousObjectUrl = selectedAvatarObjectUrl;
+          selectedAvatarObjectUrl = null;
+          savedAvatarObjectUrl = null;
+          selectedAvatarUrl = DEFAULT_AVATAR;
+          if (previousObjectUrl) URL.revokeObjectURL(previousObjectUrl);
+          setState('ready');
+          showCallStatus(removedFromStorage
+            ? 'Demo avatar restored; saved custom model removed from this device'
+            : 'Demo avatar restored for this session, but browser storage could not be cleared');
+        } catch (resetError) {
+          console.error('RIYA could not restore the demo avatar:', resetError);
+          avatarResetButton.disabled = false;
+          showCallStatus('Could not restore the demo avatar. Please refresh and try again.');
         }
       });
     }
