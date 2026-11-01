@@ -127,7 +127,7 @@ async def avatar_action(payload: AvatarActionRequest):
         "for come closer use move_z=0.25, for move back use -0.25, for left/right use x=-0.45/0.45. "
         "Only set coordinates when movement is clearly intended; otherwise use null. The room is a "
         "photographic backdrop with bounded avatar-root translation, not a fully collision-aware 3D room. "
-        "Never claim unsupported actions such as real object interaction, dancing, or a physical hug. "
+        "Never claim real object interaction or a physical hug. The dance pose is a small stylized procedural motion, not full dance choreography. "
         "Choose a subtle full-body pose when useful: wave for greeting, thinking for reflection, open_arms for welcoming, "
         "cross_arms for a reserved/considering stance, dance only when the conversation clearly invites playful celebration, "
         "lean_in for attentive warmth, nod for agreement/listening, otherwise natural. Do not overuse poses. "
