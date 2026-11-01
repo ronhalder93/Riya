@@ -49,7 +49,7 @@ function saveHistory(text, role) {
 
 function inferLocalAvatarAction(message, reply) {
   const text = (String(message || '') + ' ' + String(reply || '')).toLowerCase();
-  const action = { mood: 'neutral', gaze: 'camera', gesture: 'none', body: 'idle' };
+  const action = { mood: 'neutral', gaze: 'camera', gesture: 'none', body: 'idle', pose: 'natural' };
 
   if (/\b(love you|miss you|kiss|jaan|baby|babe|darling|pyaar|प्यार|जान|किस|😘|❤️|💕)\b/i.test(text)) {
     action.mood = 'love';
