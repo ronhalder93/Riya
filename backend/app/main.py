@@ -70,14 +70,25 @@ async def chat(payload: ChatRequest):
 async def avatar_action(payload: AvatarActionRequest):
     """Interpret conversational intent into safe, supported avatar controls."""
     neutral = AvatarActionResponse()
-    provider = os.getenv("RIYA_AI_PROVIDER", "meganova").lower()
-    mega_key = os.getenv("MEGANOVA_API_KEY", "").strip()
-    openrouter_key = os.getenv("OPENROUTER_API_KEY", "").strip()
-    api_key = mega_key or openrouter_key
-    if provider not in {"openrouter", "meganova"} or not api_key:
+    preferred = os.getenv("RIYA_AI_PROVIDER", "meganova").strip().lower()
+    if preferred not in {"meganova", "openrouter"}:
+        preferred = "meganova"
+    configs = {
+        "meganova": {
+            "key": os.getenv("MEGANOVA_API_KEY", "").strip(),
+            "base_url": "https://inference.meganova.ai/v1",
+            "model": os.getenv("MEGANOVA_MODEL", "meganova-ai/manta-flash-1.0"),
+        },
+        "openrouter": {
+            "key": os.getenv("OPENROUTER_API_KEY", "").strip(),
+            "base_url": "https://openrouter.ai/api/v1",
+            "model": os.getenv("OPENROUTER_MODEL", "sao10k/l3.3-euryale-70b"),
+        },
+    }
+    provider_order = [preferred, "openrouter" if preferred == "meganova" else "meganova"]
+    candidates = [(name, configs[name]) for name in provider_order if configs[name]["key"]]
+    if not candidates:
         return neutral
-    base_url = "https://inference.meganova.ai/v1" if mega_key else "https://openrouter.ai/api/v1"
-    default_model = "meganova-ai/manta-flash-1.0" if mega_key else "sao10k/l3.3-euryale-70b"
 
     allowed_moods = {"neutral", "happy", "angry", "sad", "fear", "disgust", "love", "sleep"}
     allowed_gazes = {"camera", "forward"}
@@ -121,44 +132,53 @@ async def avatar_action(payload: AvatarActionRequest):
         "body: idle,walk,sit. Use null for move_x/move_z unless moving. For unrelated chat, choose "
         "a restrained natural reaction, not a random gesture."
     )
-    try:
-        client = AsyncOpenAI(
-            api_key=api_key,
-            base_url=base_url,
-            timeout=18.0,
-            max_retries=0,
-        )
-        response = await client.chat.completions.create(
-            model=os.getenv("RIYA_LLM_MODEL", default_model),
-            messages=[{"role": "system", "content": system}, *context],
-            max_tokens=180,
-        )
-        import json
-        raw = response.choices[0].message.content or "{}"
+    import json
+
+    for provider_name, config in candidates:
         try:
-            data = json.loads(raw)
-        except json.JSONDecodeError:
-            start, end = raw.find("{"), raw.rfind("}")
-            if start < 0 or end <= start:
-                raise
-            data = json.loads(raw[start:end + 1])
-        mood = data.get("mood", "neutral")
-        gaze = data.get("gaze", "camera")
-        gesture = data.get("gesture", "none")
-        body = data.get("body", "idle")
-        return AvatarActionResponse(
-            mood=mood if mood in allowed_moods else "neutral",
-            gaze=gaze if gaze in allowed_gazes else "camera",
-            gesture=gesture if gesture in allowed_gestures else "none",
-            body=body if body in allowed_body else "idle",
-            move_x=max(-0.75, min(0.75, float(data["move_x"])))
-                if isinstance(data.get("move_x"), (int, float)) else None,
-            move_z=max(-0.35, min(0.35, float(data["move_z"])))
-                if isinstance(data.get("move_z"), (int, float)) else None,
-        )
-    except Exception as exc:
-        logger.info("Avatar action planning unavailable (%s).", type(exc).__name__)
-        return neutral
+            client = AsyncOpenAI(
+                api_key=config["key"],
+                base_url=config["base_url"],
+                timeout=18.0,
+                max_retries=0,
+            )
+            response = await client.chat.completions.create(
+                model=config["model"],
+                messages=[{"role": "system", "content": system}, *context],
+                max_tokens=180,
+            )
+            raw = response.choices[0].message.content or "{}"
+            try:
+                data = json.loads(raw)
+            except json.JSONDecodeError:
+                start_json, end_json = raw.find("{"), raw.rfind("}")
+                if start_json < 0 or end_json <= start_json:
+                    raise
+                data = json.loads(raw[start_json:end_json + 1])
+
+            mood = data.get("mood", "neutral")
+            gaze = data.get("gaze", "camera")
+            gesture = data.get("gesture", "none")
+            body = data.get("body", "idle")
+            return AvatarActionResponse(
+                mood=mood if mood in allowed_moods else "neutral",
+                gaze=gaze if gaze in allowed_gazes else "camera",
+                gesture=gesture if gesture in allowed_gestures else "none",
+                body=body if body in allowed_body else "idle",
+                move_x=max(-0.75, min(0.75, float(data["move_x"])))
+                    if isinstance(data.get("move_x"), (int, float)) else None,
+                move_z=max(-0.35, min(0.35, float(data["move_z"])))
+                    if isinstance(data.get("move_z"), (int, float)) else None,
+            )
+        except Exception as exc:
+            logger.info(
+                "Avatar action provider %s failed (%s); trying backup if configured.",
+                provider_name,
+                type(exc).__name__,
+            )
+
+    logger.info("All configured avatar action providers failed; using neutral action.")
+    return neutral
 
 @app.post("/api/livekit/token")
 async def livekit_token(payload: LiveKitTokenRequest):
