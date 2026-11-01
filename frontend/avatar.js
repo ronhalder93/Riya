@@ -2,7 +2,7 @@
 const API_BASE = 'https://riya-api-plnn.onrender.com';
 const WORKLET = 'https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/modules/headworklet.mjs';
 const MODEL = 'https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/model-en-mixed.bin';
-const DEFAULT_AVATAR = 'https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@1.8/avatars/brunette.glb';
+const DEFAULT_AVATAR = 'https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@main/avatars/brunette.glb';
 // A production character can be supplied without changing the avatar runtime.
 // Set window.RIYA_AVATAR_URL before avatar.js loads; incompatible models fall back safely.
 const AVATAR = typeof window.RIYA_AVATAR_URL === 'string' && window.RIYA_AVATAR_URL.trim()
@@ -463,7 +463,7 @@ if (mount) {
     console.error('RIYA avatar failed to initialize:', err);
     setState('avatar error');
     if (fallback) {
-      fallback.textContent = 'Avatar could not load. Please refresh and try again.';
+      fallback.textContent = 'Avatar could not load: ' + (err?.message || '3D model or graphics loading failed') + '. Check connection and refresh.';
       fallback.classList.remove('hidden');
     }
   }
