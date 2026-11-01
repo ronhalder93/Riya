@@ -49,7 +49,7 @@ function saveHistory(text, role) {
 
 function inferLocalAvatarAction(message, reply) {
   const text = (String(message || '') + ' ' + String(reply || '')).toLowerCase();
-  const action = { mood: 'neutral', gaze: 'camera', gesture: 'none', body: 'idle' };
+  const action = { mood: 'neutral', gaze: 'camera', gesture: 'none', body: 'idle', pose: 'natural' };
 
   if (/\b(love you|miss you|kiss|jaan|baby|babe|darling|pyaar|प्यार|जान|किस|😘|❤️|💕)\b/i.test(text)) {
     action.mood = 'love';
@@ -64,6 +64,11 @@ function inferLocalAvatarAction(message, reply) {
     action.mood = 'happy';
     action.gesture = 'thumbup';
   }
+
+  if (/\b(hello|hi|hey|namaste|नमस्ते|নমস্কার)\b/i.test(text)) action.pose = 'wave';
+  else if (/\b(think|thinking|soch|सोच|ভাবছি|hmm)\b/i.test(text)) action.pose = 'thinking';
+  else if (/\b(dance|nach|नाच|নাচ)\b/i.test(text)) action.pose = 'dance';
+  else if (/\b(welcome|hug|स्वागत|স্বাগতম)\b/i.test(text)) action.pose = 'open_arms';
 
   if (/\b(sit|baith|बैठ|বসো)\b/i.test(text)) action.body = 'sit';
   else if (/\b(walk|come here|come closer|idhar aao|पास आ|এদিকে এসো)\b/i.test(text)) {

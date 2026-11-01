@@ -1,3 +1,4 @@
+
 const API_BASE = 'https://riya-api-plnn.onrender.com';
 const WORKLET = 'https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/modules/headworklet.mjs';
 const MODEL = 'https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/model-en-mixed.bin';
@@ -9,6 +10,7 @@ const stateLabel = document.getElementById('avatarState');
 let room = null;
 let headaudio = null;
 let head = null;
+let bodyPose = 'natural';
 let Room = null;
 let RoomEvent = null;
 let Track = null;
@@ -68,6 +70,8 @@ if (mount) {
       const mood = moods.includes(action.mood) ? action.mood : 'neutral';
       const gesture = gestures.includes(action.gesture) ? action.gesture : 'none';
       const body = ['idle', 'walk', 'sit'].includes(action.body) ? action.body : 'idle';
+      const poses = ['natural', 'wave', 'thinking', 'open_arms', 'cross_arms', 'dance', 'lean_in', 'nod'];
+      bodyPose = poses.includes(action.pose) ? action.pose : 'natural';
       try {
         if (window.riyaBodyAction) window.riyaBodyAction(body);
         head.setMood(mood);
@@ -80,10 +84,6 @@ if (mount) {
         console.warn('RIYA avatar action could not be played:', actionError);
       }
     };
-    if (window.riyaPendingAction) {
-      window.riyaApplyAction(window.riyaPendingAction);
-      delete window.riyaPendingAction;
-    }
     if (fallback) fallback.classList.add('hidden');
     setState('ready');
 
@@ -112,7 +112,7 @@ if (mount) {
     const motionBoneNames = [
       'Hips', 'Spine', 'Spine1', 'Spine2',
       'LeftArm', 'LeftForeArm', 'RightArm', 'RightForeArm',
-      'LeftUpLeg', 'LeftLeg', 'LeftFoot',
+      'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'Neck', 'Head',
       'RightUpLeg', 'RightLeg', 'RightFoot',
     ];
     const motionBones = new Map();
@@ -129,7 +129,7 @@ if (mount) {
     const hasLegRig = ['Hips', 'LeftUpLeg', 'LeftLeg', 'RightUpLeg', 'RightLeg']
       .every((name) => motionBones.has(name));
     let bodyMotion = 'idle';
-    let bodyMotionBlend = 0;
+        let bodyMotionBlend = 0;
     let bodyMotionPhase = 0;
     const avatarRoot = head.armature;
     const roomPosition = { x: avatarRoot.position.x, z: avatarRoot.position.z };
@@ -165,6 +165,11 @@ if (mount) {
       }
       return false;
     };
+
+    if (window.riyaPendingAction) {
+      window.riyaApplyAction(window.riyaPendingAction);
+      delete window.riyaPendingAction;
+    }
 
     function updateBodyMotion(dt) {
       if (!hasLegRig || !head?.armature) return;
@@ -220,6 +225,49 @@ if (mount) {
       apply('RightArm', 0.28 * sit + 0.26 * swing * walk);
       apply('LeftForeArm', -0.18 * sit);
       apply('RightForeArm', -0.18 * sit);
+
+      // Conversation-selected procedural poses. These use the existing rig and
+      // blend gently rather than pretending unavailable animation clips exist.
+      const poseWeight = 1;
+      const wavePulse = Math.sin(bodyMotionPhase * 2.8);
+      const setPose = (name, rx = 0, ry = 0, rz = 0) => {
+        const base = motionBones.get(name);
+        if (!base) return;
+        base.bone.rotation.x += rx * poseWeight;
+        base.bone.rotation.y += ry * poseWeight;
+        base.bone.rotation.z += rz * poseWeight;
+      };
+      if (bodyPose === 'wave') {
+        setPose('RightArm', -1.05 + wavePulse * 0.12, 0, -0.28);
+        setPose('RightForeArm', -0.45 + wavePulse * 0.22, 0, -0.12);
+      } else if (bodyPose === 'thinking') {
+        setPose('RightArm', -0.72, 0, -0.42);
+        setPose('RightForeArm', -1.05, 0, 0.12);
+        setPose('Neck', -0.10, 0.08, 0);
+      } else if (bodyPose === 'open_arms') {
+        setPose('LeftArm', -0.12, 0, 0.82);
+        setPose('RightArm', -0.12, 0, -0.82);
+        setPose('LeftForeArm', -0.25, 0, 0.12);
+        setPose('RightForeArm', -0.25, 0, -0.12);
+      } else if (bodyPose === 'cross_arms') {
+        setPose('LeftArm', -0.28, 0, -0.48);
+        setPose('RightArm', -0.28, 0, 0.48);
+        setPose('LeftForeArm', -1.05, 0, -0.22);
+        setPose('RightForeArm', -1.05, 0, 0.22);
+      } else if (bodyPose === 'dance') {
+        setPose('Spine', Math.sin(bodyMotionPhase * 2) * 0.12, 0, Math.sin(bodyMotionPhase) * 0.12);
+        setPose('LeftArm', -0.62 + wavePulse * 0.22, 0, 0.45);
+        setPose('RightArm', -0.62 - wavePulse * 0.22, 0, -0.45);
+        setPose('LeftForeArm', -0.42, 0, 0.12);
+        setPose('RightForeArm', -0.42, 0, -0.12);
+      } else if (bodyPose === 'lean_in') {
+        setPose('Spine', -0.16, 0, 0);
+        setPose('Spine1', -0.12, 0, 0);
+        setPose('Neck', 0.08, 0, 0);
+      } else if (bodyPose === 'nod') {
+        setPose('Neck', Math.sin(bodyMotionPhase * 3.5) * 0.12, 0, 0);
+        setPose('Head', Math.sin(bodyMotionPhase * 3.5) * 0.08, 0, 0);
+      }
 
       // Gentle breathing keeps the avatar from looking frozen between gestures.
       // Apply it on top of the procedural pose without requiring another asset.
