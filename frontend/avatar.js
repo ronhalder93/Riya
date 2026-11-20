@@ -117,27 +117,10 @@ function setState(value) {
   if (stateLabel) stateLabel.textContent = value.toUpperCase();
 }
 
-// Use a locally hosted, generated bedroom image as the scene environment.
-// The base64 asset keeps the room available offline with the app shell.
-if (mount) {
-  const backdrop = document.createElement('div');
-  backdrop.className = 'room-backdrop';
-  backdrop.setAttribute('aria-hidden', 'true');
-  mount.appendChild(backdrop);
-  fetch('./room-image.b64')
-    .then((response) => {
-      if (!response.ok) throw new Error('Room image unavailable');
-      return response.text();
-    })
-    .then((encoded) => {
-      const clean = encoded.trim();
-      if (clean.startsWith('/9j/')) {
-        backdrop.style.backgroundImage = 'url("data:image/jpeg;base64,' + clean + '")';
-        backdrop.classList.add('loaded');
-      }
-    })
-    .catch((error) => console.warn('RIYA room backdrop unavailable:', error));
-}
+// Replace the old flat room photo with the lightweight furnished 3D apartment.
+let riyaRoomFloor = null;
+let roomRaycaster = null;
+let roomPointer = null;
 
 if (mount) {
   setState('loading');
@@ -153,6 +136,13 @@ if (mount) {
       avatarIdleEyeContact: 0.4,
       avatarSpeakingEyeContact: 0.8,
     });
+
+    const THREE = await import('three');
+    const { buildRiyaRoom } = await import('./room3d.js');
+    const roomBuild = buildRiyaRoom(head.scene);
+    riyaRoomFloor = roomBuild.floor;
+    roomRaycaster = new THREE.Raycaster();
+    roomPointer = new THREE.Vector2();
 
     const avatarOptions = {
       body: 'F',
@@ -207,6 +197,22 @@ if (mount) {
     }
 
     window.riyaHead = head;
+
+    // Tap/click the visible floor to walk RIYA to that point in the room.
+    const roomCanvas = mount.querySelector('canvas');
+    if (roomCanvas && riyaRoomFloor && head.camera) {
+      roomCanvas.addEventListener('click', (event) => {
+        const rect = roomCanvas.getBoundingClientRect();
+        roomPointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        roomPointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        roomRaycaster.setFromCamera(roomPointer, head.camera);
+        const hit = roomRaycaster.intersectObject(riyaRoomFloor, false)[0];
+        if (hit && window.riyaMoveTo) {
+          window.riyaMoveTo(hit.point.x, hit.point.z);
+          showCallStatus('Walking to selected spot…');
+        }
+      });
+    }
 
     // RIYA GLB stores clothing as named material primitives on a shared skinned
     // mesh, not as Ready Player Me Outfit meshes. Hide only the jacket materials;
@@ -494,8 +500,8 @@ if (mount) {
     // a 2D photographic backdrop, so keep movement within a conservative visible area.
     window.riyaMoveTo = (x, z) => {
       if (!avatarRoot?.position || !Number.isFinite(x) || !Number.isFinite(z)) return false;
-      roomTarget.x = Math.max(-0.75, Math.min(0.75, x));
-      roomTarget.z = Math.max(-0.35, Math.min(0.35, z));
+      roomTarget.x = Math.max(-2.35, Math.min(2.35, x));
+      roomTarget.z = Math.max(-2.55, Math.min(0.85, z));
       roomMoving = Math.hypot(roomTarget.x - avatarRoot.position.x, roomTarget.z - avatarRoot.position.z) > 0.025;
       bodyMotion = roomMoving ? 'walk' : 'idle';
       return true;
