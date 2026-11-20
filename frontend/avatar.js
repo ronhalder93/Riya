@@ -656,6 +656,74 @@ if (mount) {
       if (typeof audioUpdate === 'function') audioUpdate(dt);
       updateBodyMotion(dt);
     };
+
+    // Load a separate CC0 full-body female character from Grab3D. Keep the
+    // original TalkingHead avatar as a hidden fallback for voice/lip-sync.
+    // The new model supplies its own humanoid skeleton and walk/run clips.
+    let externalCharacter = null;
+    let externalMixer = null;
+    let externalWalk = null;
+    let externalRun = null;
+    let externalActive = null;
+    try {
+      showCallStatus('Loading new full-body character…');
+      const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+      const loader = new GLTFLoader();
+      const gltf = await withTimeout(new Promise((resolve, reject) => {
+        loader.load(
+          'https://grab3d.com/dl/female-athlete-rigged/female-athlete-rigged.glb',
+          resolve,
+          undefined,
+          reject
+        );
+      }), 60000, 'New character download');
+      externalCharacter = gltf.scene;
+      externalCharacter.name = 'Riya-New-Female-Character';
+      externalCharacter.scale.setScalar(1);
+      externalCharacter.position.set(avatarRoot.position.x, 0, avatarRoot.position.z);
+      externalCharacter.rotation.y = avatarRoot.rotation.y;
+      head.scene.add(externalCharacter);
+      externalMixer = new THREE.AnimationMixer(externalCharacter);
+      const walkClip = gltf.animations.find((clip) => /walk/i.test(clip.name)) || gltf.animations[0];
+      const runClip = gltf.animations.find((clip) => /run/i.test(clip.name));
+      if (walkClip) {
+        externalWalk = externalMixer.clipAction(walkClip);
+        externalWalk.play();
+        externalWalk.timeScale = 0.08;
+        externalActive = externalWalk;
+      }
+      if (runClip) externalRun = externalMixer.clipAction(runClip);
+      if (head.armature) head.armature.visible = false;
+      const previousUpdate = head.opt.update;
+      head.opt.update = (dt) => {
+        if (typeof previousUpdate === 'function') previousUpdate(dt);
+        if (!externalCharacter) return;
+        const step = Math.min(Math.max(dt || 0, 0), 0.05);
+        // Reuse the room movement controller already wired to floor taps.
+        externalCharacter.position.x = avatarRoot.position.x;
+        externalCharacter.position.z = avatarRoot.position.z;
+        externalCharacter.rotation.y = avatarRoot.rotation.y;
+        if (externalMixer) externalMixer.update(step);
+        const wantsWalk = bodyMotion === 'walk' || roomMoving;
+        const nextAction = wantsWalk ? (externalWalk || externalRun) : externalWalk;
+        if (nextAction && nextAction !== externalActive) {
+          externalActive?.fadeOut(0.18);
+          nextAction.reset().fadeIn(0.18).play();
+          externalActive = nextAction;
+        }
+        if (externalActive) externalActive.timeScale = wantsWalk ? 1 : 0.08;
+      };
+      showCallStatus('New character loaded: walk and run animations ready');
+      console.info('[riya] external character loaded', {
+        animations: gltf.animations.map((clip) => clip.name),
+        materials: externalCharacter.children.length,
+      });
+    } catch (characterError) {
+      console.warn('New external character could not load; keeping the bundled avatar visible:', characterError);
+      if (head.armature) head.armature.visible = true;
+      showCallStatus('New character unavailable; original avatar restored');
+    }
+
     if (!hasLegRig) console.warn('RIYA full-body procedural motion disabled: compatible leg bones were not found.');
   } catch (err) {
     console.error('RIYA avatar failed to initialize:', err);
