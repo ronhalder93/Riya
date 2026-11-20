@@ -22,7 +22,7 @@ jobs:
         run: npm install --no-save @gltf-transform/core
       - name: Validate every animation and compare skeletons
         run: |
-          cat > /tmp/test-glb.mjs <<'EOF'
+          cat > ./test-glb.mjs <<'EOF'
           import { NodeIO } from '@gltf-transform/core';
           import fs from 'node:fs';
           import path from 'node:path';
@@ -61,4 +61,4 @@ jobs:
           if (failures.length) { console.error(failures.join('\\n')); process.exit(1); }
           if (!clips) throw new Error('No animation clips found');
           EOF
-          node /tmp/test-glb.mjs
+          node ./test-glb.mjs
