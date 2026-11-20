@@ -757,6 +757,7 @@ if (mount) {
         if (externalActive) externalActive.timeScale = requested === 'run' ? 1.25 : 1;
       };
       showCallStatus('New character loaded: ' + Object.keys(externalActions).join(', ') + ' animations ready');
+      window.dispatchEvent(new Event('riya-character-ready'));
       console.info('[riya] external character loaded', {
         animations: gltf.animations.map((clip) => clip.name),
         materials: externalCharacter.children.length,
@@ -765,6 +766,7 @@ if (mount) {
       console.warn('New external character could not load; keeping the bundled avatar visible:', characterError);
       if (head.armature) head.armature.visible = true;
       showCallStatus('New character unavailable; original avatar restored');
+      window.dispatchEvent(new Event('riya-character-ready'));
     }
 
     if (!hasLegRig) console.warn('RIYA full-body procedural motion disabled: compatible leg bones were not found.');
