@@ -665,6 +665,8 @@ if (mount) {
     let externalWalk = null;
     let externalRun = null;
     let externalActive = null;
+    let externalRequestedAction = 'idle';
+    const externalActions = {};
     try {
       showCallStatus('Loading new full-body character…');
       const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
@@ -684,15 +686,51 @@ if (mount) {
       externalCharacter.rotation.y = avatarRoot.rotation.y;
       head.scene.add(externalCharacter);
       externalMixer = new THREE.AnimationMixer(externalCharacter);
-      const walkClip = gltf.animations.find((clip) => /walk/i.test(clip.name)) || gltf.animations[0];
-      const runClip = gltf.animations.find((clip) => /run/i.test(clip.name));
+      const findClip = (pattern) => gltf.animations.find((clip) => pattern.test(clip.name));
+      const walkClip = findClip(/walk/i) || gltf.animations[0];
+      const runClip = findClip(/run/i);
+      const danceClip = findClip(/dance/i);
+      const sitClip = findClip(/sit|sitting/i);
       if (walkClip) {
         externalWalk = externalMixer.clipAction(walkClip);
-        externalWalk.play();
-        externalWalk.timeScale = 0.08;
-        externalActive = externalWalk;
+        externalActions.walk = externalWalk;
       }
-      if (runClip) externalRun = externalMixer.clipAction(runClip);
+      if (runClip) {
+        externalRun = externalMixer.clipAction(runClip);
+        externalActions.run = externalRun;
+      }
+      if (danceClip) externalActions.dance = externalMixer.clipAction(danceClip);
+      if (sitClip) externalActions.sit = externalMixer.clipAction(sitClip);
+      // Only advertise actions that exist in the downloaded GLB. This avoids
+      // pretending that a missing sit/dance clip is available.
+      window.riyaPremiumAction = (name = 'idle') => {
+        const actionName = String(name).toLowerCase();
+        if (actionName === 'idle') {
+          externalRequestedAction = 'idle';
+          Object.values(externalActions).forEach((action) => action.fadeOut(0.2));
+          externalActive = null;
+          showCallStatus('Standing idle');
+          return true;
+        }
+        const action = externalActions[actionName];
+        if (!action) {
+          showCallStatus('This character model has no ' + actionName + ' animation clip yet');
+          return false;
+        }
+        externalRequestedAction = actionName;
+        if (externalActive !== action) {
+          externalActive?.fadeOut(0.2);
+          action.reset().fadeIn(0.2).play();
+          externalActive = action;
+        }
+        showCallStatus(actionName.charAt(0).toUpperCase() + actionName.slice(1) + ' animation');
+        return true;
+      };
+      window.riyaPremiumAnimationStatus = () => ({
+        available: ['idle', ...Object.keys(externalActions)],
+        clips: gltf.animations.map((clip) => clip.name),
+        model: 'Grab3D Female Athlete',
+      });
       if (head.armature) head.armature.visible = false;
       const previousUpdate = head.opt.update;
       head.opt.update = (dt) => {
@@ -704,16 +742,21 @@ if (mount) {
         externalCharacter.position.z = avatarRoot.position.z;
         externalCharacter.rotation.y = avatarRoot.rotation.y;
         if (externalMixer) externalMixer.update(step);
-        const wantsWalk = bodyMotion === 'walk' || roomMoving;
-        const nextAction = wantsWalk ? (externalWalk || externalRun) : externalWalk;
+        const wantsMove = bodyMotion === 'walk' || roomMoving;
+        const requested = wantsMove ? 'walk' : (bodyMotion === 'run' ? 'run' : externalRequestedAction);
+        const nextAction = externalActions[requested] || (requested === 'run' ? externalActions.walk : null);
         if (nextAction && nextAction !== externalActive) {
-          externalActive?.fadeOut(0.18);
-          nextAction.reset().fadeIn(0.18).play();
+          externalActive?.fadeOut(0.2);
+          nextAction.reset().fadeIn(0.2).play();
           externalActive = nextAction;
         }
-        if (externalActive) externalActive.timeScale = wantsWalk ? 1 : 0.08;
+        if (!wantsMove && requested === 'idle' && externalActive) {
+          externalActive.fadeOut(0.2);
+          externalActive = null;
+        }
+        if (externalActive) externalActive.timeScale = requested === 'run' ? 1.25 : 1;
       };
-      showCallStatus('New character loaded: walk and run animations ready');
+      showCallStatus('New character loaded: ' + Object.keys(externalActions).join(', ') + ' animations ready');
       console.info('[riya] external character loaded', {
         animations: gltf.animations.map((clip) => clip.name),
         materials: externalCharacter.children.length,
