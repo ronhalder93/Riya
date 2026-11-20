@@ -1,0 +1,45 @@
+name: Download RIYA animation library
+
+on:
+  push:
+    paths:
+      - ".github/workflows/download-riya-animations.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  download-and-keep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Download verified CC0 GLB pack
+        run: |
+          set -euo pipefail
+          mkdir -p frontend/animations/kinemiq-cc0
+          curl --fail --location --retry 3 \
+            "https://huggingface.co/datasets/Kinemiq/free-game-animations/resolve/main/KinemIQ_Free_Animations_CC0_GLB.zip" \
+            --output /tmp/riya-animations.zip
+          echo "64ca5ab4a92c9da079c5e88ca509391b0a58a24ccf2a1307b16e2f0fc6b23ffc  /tmp/riya-animations.zip" | sha256sum --check
+          unzip -o /tmp/riya-animations.zip -d frontend/animations/kinemiq-cc0
+          test -n "$(find frontend/animations/kinemiq-cc0 -type f -print -quit)"
+          echo "Downloaded and extracted animation files:"
+          find frontend/animations/kinemiq-cc0 -type f -printf '%p (%s bytes)\n'
+
+      - name: Commit animation assets to repository
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/animations/kinemiq-cc0
+          if git diff --cached --quiet; then
+            echo "Animation assets already present; nothing to commit."
+          else
+            git commit -m "Add verified CC0 animation library"
+            git push
+          fi
