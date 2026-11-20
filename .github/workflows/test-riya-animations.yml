@@ -1,0 +1,64 @@
+name: Test RIYA animation assets
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "frontend/animations/kinemiq-cc0/**"
+      - ".github/workflows/test-riya-animations.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-glb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install GLB parser
+        run: npm install --no-save @gltf-transform/core
+      - name: Validate every animation and compare skeletons
+        run: |
+          cat > /tmp/test-glb.mjs <<'EOF'
+          import { NodeIO } from '@gltf-transform/core';
+          import fs from 'node:fs';
+          import path from 'node:path';
+          const io = new NodeIO();
+          const dir = 'frontend/animations/kinemiq-cc0/GLB';
+          const files = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.glb')).sort();
+          if (files.length !== 35) throw new Error(`Expected 35 GLBs, found ${files.length}`);
+          const read = async p => io.read(p);
+          const boneSet = doc => {
+            const names = new Set();
+            for (const node of doc.getRoot().listNodes()) {
+              const skin = node.getSkin();
+              if (skin) for (const joint of skin.listJoints()) names.add(joint.getName());
+            }
+            return names;
+          };
+          let clips = 0;
+          const failures = [];
+          for (const file of files) {
+            try {
+              const doc = await read(path.join(dir, file));
+              const animations = doc.getRoot().listAnimations();
+              if (!animations.length) failures.push(`${file}: no animation clips`);
+              clips += animations.length;
+              const joints = boneSet(doc);
+              console.log(`PASS ${file}: ${animations.length} clip(s), ${joints.size} skin joints`);
+            } catch (e) { failures.push(`${file}: ${e.message}`); }
+          }
+          const mannequin = await read('frontend/animations/kinemiq-cc0/KinemIQ_Mannequin.glb');
+          const riya = await read('frontend/avatars/RIYA.glb');
+          const kinBones = boneSet(mannequin);
+          const riyaBones = boneSet(riya);
+          const common = [...kinBones].filter(n => riyaBones.has(n));
+          console.log(`SUMMARY files=${files.length} clips=${clips} mannequinBones=${kinBones.size} riyaBones=${riyaBones.size} commonBoneNames=${common.length}`);
+          console.log('COMMON BONES:', common.sort().join(', '));
+          if (failures.length) { console.error(failures.join('\\n')); process.exit(1); }
+          if (!clips) throw new Error('No animation clips found');
+          EOF
+          node /tmp/test-glb.mjs
